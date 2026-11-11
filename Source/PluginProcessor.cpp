@@ -122,8 +122,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                 {
                     heldNotes[noteIndex] = true;
                     noteVelocities[noteIndex] = msg.getFloatVelocity();
-                    noteSpawnCounters[noteIndex] = 0;
-                    spawnGrain (note, noteVelocities[noteIndex]);
+                    noteSpawnCounters[noteIndex] = interval - 1;
                 }
                 else if (msg.isNoteOff())
                 {
