@@ -101,30 +101,41 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float density = parameters.getRawParameterValue("density")->load();
     const int interval = juce::jmax (1, (int) (currentSampleRate / juce::jmax (1.0f, density)));
 
-    for (const auto metadata : midi)
-    {
-        const auto msg = metadata.getMessage();
-        const int note = msg.getNoteNumber();
-        if (note < 0 || note >= 128)
-            continue;
-
-        if (msg.isNoteOn())
-        {
-            heldNotes[(size_t) note] = true;
-            noteVelocities[(size_t) note] = msg.getFloatVelocity();
-            noteSpawnCounters[(size_t) note] = interval - 1;
-        }
-        else if (msg.isNoteOff())
-        {
-            heldNotes[(size_t) note] = false;
-        }
-    }
-
     const int total = buffer.getNumSamples();
     const int channels = buffer.getNumChannels();
+    auto midiEvent = midi.begin();
+    const auto midiEnd = midi.end();
+
     for (int i = 0; i < total; ++i)
     {
-        // Each held MIDI note owns an independent grain-generation clock.
+        // Apply MIDI events at their exact sample offset inside this block.
+        while (midiEvent != midiEnd && (*midiEvent).samplePosition <= i)
+        {
+            const auto msg = (*midiEvent).getMessage();
+            const int note = msg.getNoteNumber();
+
+            if (note >= 0 && note < 128)
+            {
+                const auto noteIndex = (size_t) note;
+
+                if (msg.isNoteOn())
+                {
+                    heldNotes[noteIndex] = true;
+                    noteVelocities[noteIndex] = msg.getFloatVelocity();
+                    noteSpawnCounters[noteIndex] = 0;
+                    spawnGrain (note, noteVelocities[noteIndex]);
+                }
+                else if (msg.isNoteOff())
+                {
+                    heldNotes[noteIndex] = false;
+                    noteSpawnCounters[noteIndex] = 0;
+                }
+            }
+
+            ++midiEvent;
+        }
+
+        // Every held note has its own independent grain-generation clock.
         for (int n = 0; n < 128; ++n)
         {
             const auto noteIndex = (size_t) n;
