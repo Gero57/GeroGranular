@@ -44,10 +44,14 @@ private:
         float gain = 0.0f;
         float pan = 0.0f;
         int midiNote = 60;
+        bool fromFeedback = false;
     };
 
     juce::AudioFormatManager formats;
     juce::AudioBuffer<float> source;
+    juce::AudioBuffer<float> feedbackBuffer;
+    int feedbackWritePosition = 0;
+    int feedbackSamplesWritten = 0;
     juce::String sampleName { "No sample loaded" };
     juce::CriticalSection sampleLock;
     std::array<Grain, 256> grains {};
