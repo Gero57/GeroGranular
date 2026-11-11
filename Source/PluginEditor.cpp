@@ -97,65 +97,75 @@ void GeroGrainAudioProcessorEditor::chooseSample()
 
 void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // Fixed 1200 x 800 dark brushed-metal chassis, drawn natively in JUCE.
+    // Fixed 1200 x 800 black lacquer / dark wood chassis.
+    // Controls remain separate JUCE child components above this background.
     auto bounds = getLocalBounds().toFloat();
-    juce::ColourGradient base (juce::Colour (0xff20262c), 0.0f, 0.0f,
-                               juce::Colour (0xff090d12), 0.0f, (float)getHeight(), false);
-    base.addColour (0.28, juce::Colour (0xff171d23));
-    base.addColour (0.62, juce::Colour (0xff10161c));
+    juce::ColourGradient base (juce::Colour (0xff202124), 0.0f, 0.0f,
+                               juce::Colour (0xff080a0d), 0.0f, (float)getHeight(), false);
+    base.addColour (0.24, juce::Colour (0xff191a1c));
+    base.addColour (0.58, juce::Colour (0xff111316));
+    base.addColour (0.82, juce::Colour (0xff0b0d10));
     g.setGradientFill (base);
     g.fillAll();
 
-    for (int y=20; y<getHeight()-18; y+=4)
+    // Fine horizontal irregular streaks: subtle black wood grain, not busy.
+    for (int i=0; i<190; ++i)
     {
-        g.setColour (juce::Colours::white.withAlpha ((y%20==0) ? 0.030f : 0.012f));
-        g.drawHorizontalLine (y, 12.0f, (float)getWidth()-12.0f);
+        const float y = 24.0f + (float)((i * 47) % 748);
+        const float x1 = 18.0f + (float)((i * 83) % 270);
+        const float x2 = juce::jmin ((float)getWidth()-18.0f, x1 + 180.0f + (float)((i*31)%520));
+        const float bend = std::sin ((float)i * 1.71f) * 1.6f;
+        const float alpha = (i % 5 == 0) ? 0.040f : 0.018f;
+        g.setColour (juce::Colour (i % 3 == 0 ? 0xffb9c3cc : 0xff64717c).withAlpha (alpha));
+        g.drawLine (x1, y, x2, y + bend, (i % 7 == 0) ? 1.3f : 0.7f);
     }
-    juce::ColourGradient glint (juce::Colour (0xffb8d4e8).withAlpha (0.10f), 45.0f, 90.0f,
-                                juce::Colour (0xffb8d4e8).withAlpha (0.0f), 560.0f, 18.0f, false);
-    g.setGradientFill (glint);
-    g.drawLine (35.0f, 105.0f, 555.0f, 18.0f, 5.0f);
-    juce::ColourGradient lowerGlint (juce::Colour (0xff9bbbd2).withAlpha (0.0f), 650.0f, 790.0f,
-                                     juce::Colour (0xff9bbbd2).withAlpha (0.07f), 1160.0f, 690.0f, false);
-    g.setGradientFill (lowerGlint);
-    g.drawLine (650.0f, 790.0f, 1160.0f, 690.0f, 4.0f);
 
-    g.setColour (juce::Colour (0xff82909b));
+    // Soft cool reflections on the lacquer.
+    juce::ColourGradient upperGlint (juce::Colour (0xffd6e8f5).withAlpha (0.16f), 42.0f, 100.0f,
+                                     juce::Colour (0xff9dbbd0).withAlpha (0.0f), 600.0f, 18.0f, false);
+    g.setGradientFill (upperGlint);
+    g.drawLine (35.0f, 105.0f, 555.0f, 18.0f, 7.0f);
+    juce::ColourGradient lowerGlint (juce::Colour (0xff9bbbd2).withAlpha (0.0f), 640.0f, 790.0f,
+                                     juce::Colour (0xffc5d9e8).withAlpha (0.10f), 1160.0f, 690.0f, false);
+    g.setGradientFill (lowerGlint);
+    g.drawLine (650.0f, 790.0f, 1160.0f, 690.0f, 5.0f);
+
+    g.setColour (juce::Colour (0xff87939d));
     g.drawRoundedRectangle (bounds.reduced (2.0f), 20.0f, 2.0f);
-    g.setColour (juce::Colour (0xff05080c));
+    g.setColour (juce::Colour (0xff05070a));
     g.drawRoundedRectangle (bounds.reduced (8.0f), 16.0f, 4.0f);
-    g.setColour (juce::Colour (0xff56636e).withAlpha (0.75f));
+    g.setColour (juce::Colour (0xff59636d).withAlpha (0.78f));
     g.drawRoundedRectangle (bounds.reduced (14.0f), 13.0f, 1.0f);
 
     auto screw = [&g] (float x, float y)
     {
-        g.setColour (juce::Colour (0xff05080b));
+        g.setColour (juce::Colour (0xff050608));
         g.fillEllipse (x-10.0f, y-10.0f, 20.0f, 20.0f);
-        g.setColour (juce::Colour (0xff9ba8b2));
+        g.setColour (juce::Colour (0xffa5afb7));
         g.drawEllipse (x-9.0f, y-9.0f, 18.0f, 18.0f, 1.0f);
-        g.setColour (juce::Colour (0xff3c4852));
+        g.setColour (juce::Colour (0xff3d454c));
         g.fillEllipse (x-6.5f, y-6.5f, 13.0f, 13.0f);
-        g.setColour (juce::Colour (0xffd5e0e8));
+        g.setColour (juce::Colour (0xffd9e1e7));
         g.drawLine (x-3.5f, y+3.5f, x+3.5f, y-3.5f, 1.5f);
     };
     screw (22.0f,22.0f); screw ((float)getWidth()-22.0f,22.0f);
     screw (22.0f,(float)getHeight()-22.0f);
     screw ((float)getWidth()-22.0f,(float)getHeight()-22.0f);
 
-    g.setColour (juce::Colour (0xfff1f5f8));
+    g.setColour (juce::Colour (0xfff1f4f6));
     g.setFont (juce::Font (28.0f, juce::Font::bold));
     g.drawText ("GeroGrain", 0, 13, getWidth(), 36, juce::Justification::centred);
-    g.setColour (juce::Colour (0xffc7d1d9));
+    g.setColour (juce::Colour (0xffc7d0d7));
     g.setFont (juce::Font (10.0f));
     g.drawText ("GRANULAR SYNTHESIS", 0, 48, getWidth(), 18, juce::Justification::centred);
 
     auto panel = [&g] (int x, int y, int w, int h, const juce::String& title)
     {
-        g.setColour (juce::Colour (0xff080d12).withAlpha (0.56f));
+        g.setColour (juce::Colour (0xff080b0f).withAlpha (0.66f));
         g.fillRoundedRectangle ((float)x, (float)y, (float)w, (float)h, 9.0f);
-        g.setColour (juce::Colour (0xff93a6b4).withAlpha (0.62f));
+        g.setColour (juce::Colour (0xff8998a3).withAlpha (0.68f));
         g.drawRoundedRectangle ((float)x, (float)y, (float)w, (float)h, 9.0f, 1.0f);
-        g.setColour (juce::Colour (0xffe3eaf0));
+        g.setColour (juce::Colour (0xffe3e8ec));
         g.setFont (juce::Font (13.0f, juce::Font::bold));
         g.drawText (title, x+12, y+7, w-24, 18, juce::Justification::centredLeft);
     };
@@ -169,9 +179,8 @@ void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
     panel (602,388,280,150,"FILTER");
     panel (894,388,288,150,"EFFECTS");
 
-    g.setColour (juce::Colour (0xffaebbc5).withAlpha (0.55f));
+    g.setColour (juce::Colour (0xffaeb8c0).withAlpha (0.52f));
     g.drawLine (20.0f,560.0f,(float)getWidth()-20.0f,560.0f,0.8f);
-    g.setColour (juce::Colour (0xffaebbc5).withAlpha (0.48f));
     g.setFont (juce::Font (9.0f));
     g.drawText ("EXPANSION AREA",0,748,getWidth(),15,juce::Justification::centred);
 }
