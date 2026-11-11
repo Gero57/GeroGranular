@@ -27,11 +27,14 @@ juce_add_plugin(GeroGrain
 
 juce_generate_juce_header(GeroGrain)
 
+juce_add_binary_data(GeroGrainAssets SOURCES BaseGrain.png)
+
 target_sources(GeroGrain PRIVATE
   Source/PluginProcessor.cpp
   Source/PluginEditor.cpp)
 target_include_directories(GeroGrain PRIVATE Source)
 target_link_libraries(GeroGrain PRIVATE
+  GeroGrainAssets
   juce::juce_audio_utils
   juce::juce_dsp
   juce::juce_gui_extra
