@@ -93,6 +93,28 @@ void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
     g.setColour (juce::Colour (0xff59636d));
     g.drawRoundedRectangle (bounds.reduced (4.0f), 12.0f, 1.2f);
 
+    // Four fixed metal screws at the panel corners.
+    auto screw = [&g] (float x, float y)
+    {
+        g.setColour (juce::Colour (0xff080b0e));
+        g.fillEllipse (x-10.0f, y-10.0f, 20.0f, 20.0f);
+        g.setColour (juce::Colour (0xff89939b));
+        g.drawEllipse (x-9.0f, y-9.0f, 18.0f, 18.0f, 1.2f);
+        g.setColour (juce::Colour (0xff3d464e));
+        g.fillEllipse (x-6.5f, y-6.5f, 13.0f, 13.0f);
+        g.setColour (juce::Colour (0xffc0c8ce));
+        g.drawLine (x-3.5f, y+3.5f, x+3.5f, y-3.5f, 1.8f);
+    };
+    screw (20.0f, 20.0f);
+    screw ((float)getWidth()-20.0f, 20.0f);
+    screw (20.0f, (float)getHeight()-20.0f);
+    screw ((float)getWidth()-20.0f, (float)getHeight()-20.0f);
+
+    // Subtle brushed-metal grain, entirely behind the controls.
+    g.setColour (juce::Colour (0xffd5dde4).withAlpha (0.025f));
+    for (int y=6; y<getHeight()-6; y+=5)
+        g.drawHorizontalLine (y, 8.0f, (float)getWidth()-8.0f);
+
     g.setColour (juce::Colour (0xfff0f3f6));
     g.setFont (juce::Font (28.0f, juce::Font::bold));
     g.drawText ("GeroGrain", 0, 13, getWidth(), 36, juce::Justification::centred);
