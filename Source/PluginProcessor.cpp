@@ -101,17 +101,24 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         const auto pos = parameters.getRawParameterValue("position")->load();
         const auto rnd = parameters.getRawParameterValue("random")->load();
         const auto pitch = parameters.getRawParameterValue("pitch")->load();
+        const auto fine = parameters.getRawParameterValue("fine")->load();
+        const auto stretch = parameters.getRawParameterValue("stretch")->load();
         const auto spread = parameters.getRawParameterValue("spread")->load();
+        const auto stereoWidth = parameters.getRawParameterValue("stereo")->load();
+        const auto jitter = parameters.getRawParameterValue("jitter")->load();
         const double centre = juce::jlimit(0.0, 1.0, (double) pos + random.nextFloat() * rnd - rnd * 0.5);
         g.position = centre * (source.getNumSamples() - 1);
         g.length = juce::jmax(64, (int)(size * currentSampleRate));
         g.age = 0;
-        const double pitchRatio = std::pow(2.0, (note - 60 + pitch) / 12.0);
+        // Fine is expressed in cents; Stretch changes playback speed independently
+        // from grain duration, allowing longer/shorter source traversal.
+        const float pitchJitter = (random.nextFloat() * 2.0f - 1.0f) * jitter * 2.0f;
+        const double pitchRatio = std::pow(2.0, (note - 60 + pitch + fine / 100.0f + pitchJitter) / 12.0);
         const double sampleRateRatio = sourceSampleRate / juce::jmax (1.0, currentSampleRate);
-        g.increment = pitchRatio * sampleRateRatio;
+        g.increment = pitchRatio * sampleRateRatio / juce::jmax (0.25f, stretch);
         const bool velocityEnabled = parameters.getRawParameterValue("velocity")->load() >= 0.5f;
         g.gain = (velocityEnabled ? velocity : 1.0f) * 0.22f;
-        g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread;
+        g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread * stereoWidth;
         g.midiNote = note;
         g.active = true;
         break;
@@ -127,6 +134,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     const float density = parameters.getRawParameterValue("density")->load();
     const int interval = juce::jmax (1, (int) (currentSampleRate / juce::jmax (1.0f, density)));
+    const float smooth = parameters.getRawParameterValue("smooth")->load();
     const float attackSeconds = parameters.getRawParameterValue("attack")->load();
     const float decaySeconds = parameters.getRawParameterValue("decay")->load();
     const float releaseSeconds = parameters.getRawParameterValue("release")->load();
@@ -235,7 +243,9 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             if (!g.active) continue;
             if (g.age >= g.length || g.position >= source.getNumSamples()-1) { g.active = false; continue; }
             const float phase = (float)g.age / (float)g.length;
-            const float window = 0.5f - 0.5f * std::cos(juce::MathConstants<float>::twoPi * phase);
+            const float hann = 0.5f - 0.5f * std::cos(juce::MathConstants<float>::twoPi * phase);
+            const float window = std::pow (juce::jlimit (0.0f, 1.0f, hann),
+                                           1.0f + smooth * 2.0f);
             const int idx = (int)g.position;
             const float frac = (float)(g.position - idx);
             const int nextIdx = juce::jmin (idx + 1, source.getNumSamples() - 1);
