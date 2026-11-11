@@ -14,7 +14,26 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("release","Release",0.01f,5.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("cutoff","Cutoff",40.0f,18000.0f,14000.0f),
       std::make_unique<juce::AudioParameterFloat>("resonance","Resonance",0.1f,1.0f,0.25f),
-      std::make_unique<juce::AudioParameterFloat>("reverb","Reverb",0.0f,1.0f,0.15f)
+      std::make_unique<juce::AudioParameterFloat>("reverb","Reverb",0.0f,1.0f,0.15f),
+      std::make_unique<juce::AudioParameterFloat>("jitter","Jitter",0.0f,1.0f,0.1f),
+      std::make_unique<juce::AudioParameterFloat>("smooth","Smooth",0.0f,1.0f,0.5f),
+      std::make_unique<juce::AudioParameterFloat>("stretch","Stretch",0.25f,4.0f,1.0f),
+      std::make_unique<juce::AudioParameterFloat>("stereo","Stereo",0.0f,1.0f,1.0f),
+      std::make_unique<juce::AudioParameterFloat>("feedback","Feedback",0.0f,0.95f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("fine","Fine",-100.0f,100.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("lfoamt","LFO Amount",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("sustain","Sustain",0.0f,1.0f,0.8f),
+      std::make_unique<juce::AudioParameterFloat>("lforate","LFO Rate",0.05f,20.0f,1.0f),
+      std::make_unique<juce::AudioParameterFloat>("lfodepth","LFO Depth",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("lfoshape","LFO Shape",0.0f,4.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("modlfo1","Mod LFO 1",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("modlfo2","Mod LFO 2",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("modenv","Mod Envelope",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("drive","Drive",0.0f,24.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("chorus","Chorus",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("delay","Delay",0.0f,1.0f,0.0f),
+      std::make_unique<juce::AudioParameterFloat>("effectmix","Effect Mix",0.0f,1.0f,0.25f),
+      std::make_unique<juce::AudioParameterFloat>("effecttime","Effect Time",0.0f,1.0f,0.5f)
    })
 {
     formats.registerBasicFormats();
