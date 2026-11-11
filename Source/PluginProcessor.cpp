@@ -33,7 +33,7 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("chorus","Chorus",0.0f,1.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("delay","Delay",0.0f,1.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("effectmix","Effect Mix",0.0f,1.0f,0.25f),
-      std::make_unique<juce::AudioParameterFloat>("effecttime","Effect Time",0.0f,1.0f,0.5f)
+      std::make_unique<juce::AudioParameterFloat>("decay","Decay",0.001f,3.0f,0.25f)
    })
 {
     formats.registerBasicFormats();
