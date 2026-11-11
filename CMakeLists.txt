@@ -27,7 +27,7 @@ juce_add_plugin(GeroGrain
 
 juce_generate_juce_header(GeroGrain)
 
-juce_add_binary_data(GeroGrainAssets SOURCES BaseGrain.png)
+juce_add_binary_data(GeroGrainAssets SOURCES BaseGrain.svg)
 
 target_sources(GeroGrain PRIVATE
   Source/PluginProcessor.cpp
