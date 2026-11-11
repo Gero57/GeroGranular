@@ -14,8 +14,11 @@ jobs:
     runs-on: [self-hosted, macOS, ARM64]
     steps:
       - uses: actions/checkout@v4
-      - name: Check Xcode
-        run: xcodebuild -version
+      - name: Check Apple Command Line Tools
+        run: |
+          clang --version
+          xcrun --show-sdk-path
+          cmake --version
       - name: Configure
         run: cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DJUCE_BUILD_EXAMPLES=OFF -DJUCE_BUILD_EXTRAS=OFF
       - name: Build VST3
