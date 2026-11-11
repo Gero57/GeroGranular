@@ -99,11 +99,11 @@ void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
 {
     // The uploaded 1200x800 blue marble panel is the fixed background.
     // All JUCE controls are child components and therefore remain above it.
-    static const juce::Image panel = juce::ImageCache::getFromMemory
+    static const juce::Image backgroundImage = juce::ImageCache::getFromMemory
         (BinaryData::BaseGrain_png, BinaryData::BaseGrain_pngSize);
 
-    if (panel.isValid())
-        g.drawImage (panel, getLocalBounds().toFloat());
+    if (backgroundImage.isValid())
+        g.drawImage (backgroundImage, getLocalBounds().toFloat());
     else
         g.fillAll (juce::Colour (0xff123b68));
 
