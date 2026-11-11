@@ -60,6 +60,11 @@ bool GeroGrainAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
 {
     currentSampleRate = sr;
+    const int feedbackCapacity = juce::jmax (1, (int) std::ceil (sr * 4.0));
+    feedbackBuffer.setSize (2, feedbackCapacity);
+    feedbackBuffer.clear();
+    feedbackWritePosition = 0;
+    feedbackSamplesWritten = 0;
     lfoPhase = 0.0;
     lfoValue = 0.0f;
     lfoRandomValue = random.nextFloat() * 2.0f - 1.0f;
@@ -101,6 +106,7 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
     {
         if (g.active) continue;
         const auto size = parameters.getRawParameterValue("size")->load();
+        const auto feedbackAmount = parameters.getRawParameterValue("feedback")->load();
         const auto pos = parameters.getRawParameterValue("position")->load();
         const auto rnd = parameters.getRawParameterValue("random")->load();
         const auto pitch = parameters.getRawParameterValue("pitch")->load();
@@ -111,9 +117,25 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         const auto jitter = parameters.getRawParameterValue("jitter")->load();
         const auto lfoAmount = parameters.getRawParameterValue("lfoamt")->load();
         const auto lfoDepth = parameters.getRawParameterValue("lfodepth")->load();
-        const double centre = juce::jlimit(0.0, 1.0, (double) pos + random.nextFloat() * rnd - rnd * 0.5);
-        g.position = centre * (source.getNumSamples() - 1);
         g.length = juce::jmax(64, (int)(size * currentSampleRate));
+        // Feedback grains read a safely delayed snapshot of the processor's
+        // previous output, so each generation can become source material.
+        const int feedbackDelay = (int) (currentSampleRate * 2.5);
+        const bool feedbackReady = feedbackSamplesWritten >= feedbackDelay + g.length;
+        g.fromFeedback = feedbackAmount > 0.001f && feedbackReady
+                         && random.nextFloat() < feedbackAmount;
+        if (g.fromFeedback)
+        {
+            const int olderOffset = random.nextInt (juce::jmax (1, (int) (currentSampleRate * 0.25)));
+            int start = feedbackWritePosition - feedbackDelay - olderOffset;
+            while (start < 0) start += feedbackBuffer.getNumSamples();
+            g.position = (double) (start % feedbackBuffer.getNumSamples());
+        }
+        else
+        {
+            const double centre = juce::jlimit(0.0, 1.0, (double) pos + random.nextFloat() * rnd - rnd * 0.5);
+            g.position = centre * (source.getNumSamples() - 1);
+        }
         g.age = 0;
         // Fine is expressed in cents; Stretch changes playback speed independently
         // from grain duration, allowing longer/shorter source traversal.
@@ -122,6 +144,8 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         const double pitchRatio = std::pow(2.0, (note - 60 + pitch + fine / 100.0f + pitchJitter + lfoPitch) / 12.0);
         const double sampleRateRatio = sourceSampleRate / juce::jmax (1.0, currentSampleRate);
         g.increment = pitchRatio * sampleRateRatio / juce::jmax (0.25f, stretch);
+        if (g.fromFeedback)
+            g.increment = juce::jlimit (0.125, 4.0, g.increment);
         const bool velocityEnabled = parameters.getRawParameterValue("velocity")->load() >= 0.5f;
         g.gain = (velocityEnabled ? velocity : 1.0f) * 0.22f;
         g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread * stereoWidth;
@@ -268,21 +292,41 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         for (auto& g : grains)
         {
             if (!g.active) continue;
-            if (g.age >= g.length || g.position >= source.getNumSamples()-1) { g.active = false; continue; }
+            if (g.age >= g.length
+                || (! g.fromFeedback && g.position >= source.getNumSamples() - 1))
+            {
+                g.active = false;
+                continue;
+            }
             const float phase = (float)g.age / (float)g.length;
             const float hann = 0.5f - 0.5f * std::cos(juce::MathConstants<float>::twoPi * phase);
             const float window = std::pow (juce::jlimit (0.0f, 1.0f, hann),
                                            1.0f - smooth * 0.75f);
-            const int idx = (int)g.position;
-            const float frac = (float)(g.position - idx);
-            const int nextIdx = juce::jmin (idx + 1, source.getNumSamples() - 1);
             const int sourceChannels = source.getNumChannels();
-            const float leftA = source.getSample (0, idx);
-            const float leftB = source.getSample (0, nextIdx);
-            const float leftSample = leftA + (leftB - leftA) * frac;
-            const float rightA = source.getSample (sourceChannels > 1 ? 1 : 0, idx);
-            const float rightB = source.getSample (sourceChannels > 1 ? 1 : 0, nextIdx);
-            const float rightSample = rightA + (rightB - rightA) * frac;
+            int idx = (int) g.position;
+            float frac = (float) (g.position - idx);
+            int nextIdx = 0;
+            float leftSample = 0.0f;
+            float rightSample = 0.0f;
+            if (g.fromFeedback)
+            {
+                const int feedbackLength = feedbackBuffer.getNumSamples();
+                idx = (idx % feedbackLength + feedbackLength) % feedbackLength;
+                nextIdx = (idx + 1) % feedbackLength;
+                leftSample = feedbackBuffer.getSample (0, idx)
+                             + (feedbackBuffer.getSample (0, nextIdx) - feedbackBuffer.getSample (0, idx)) * frac;
+                rightSample = feedbackBuffer.getSample (1, idx)
+                              + (feedbackBuffer.getSample (1, nextIdx) - feedbackBuffer.getSample (1, idx)) * frac;
+            }
+            else
+            {
+                nextIdx = juce::jmin (idx + 1, source.getNumSamples() - 1);
+                leftSample = source.getSample (0, idx)
+                             + (source.getSample (0, nextIdx) - source.getSample (0, idx)) * frac;
+                const int rightChannel = sourceChannels > 1 ? 1 : 0;
+                rightSample = source.getSample (rightChannel, idx)
+                              + (source.getSample (rightChannel, nextIdx) - source.getSample (rightChannel, idx)) * frac;
+            }
             const float panAngle = (g.pan + 1.0f) * 0.7853981633974483f;
             const float leftGain = std::cos (panAngle) * 1.41421356f;
             const float rightGain = std::sin (panAngle) * 1.41421356f;
@@ -296,6 +340,12 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                 buffer.addSample (1, i, rightSample * rightGain * envelopeGain);
             }
             g.position += g.increment;
+            if (g.fromFeedback)
+            {
+                const double feedbackLength = (double) feedbackBuffer.getNumSamples();
+                if (g.position >= feedbackLength)
+                    g.position = std::fmod (g.position, feedbackLength);
+            }
             ++g.age;
         }
 
@@ -321,6 +371,17 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             buffer.setSample (0, i, dryLeft * (1.0f - mix) + wetLeft * mix);
             buffer.setSample (1, i, dryRight * (1.0f - mix) + wetRight * mix);
         }
+
+        // Capture the post-filter/effect signal. New feedback grains read it
+        // only after a 2.5 s safety delay, preventing the write head from
+        // overwriting audio while a grain is still traversing its snapshot.
+        const int writeIndex = feedbackWritePosition;
+        const float outLeft = channels > 0 ? buffer.getSample (0, i) : 0.0f;
+        const float outRight = channels > 1 ? buffer.getSample (1, i) : outLeft;
+        feedbackBuffer.setSample (0, writeIndex, std::tanh (outLeft * 0.95f));
+        feedbackBuffer.setSample (1, writeIndex, std::tanh (outRight * 0.95f));
+        feedbackWritePosition = (feedbackWritePosition + 1) % feedbackBuffer.getNumSamples();
+        feedbackSamplesWritten = juce::jmin (feedbackSamplesWritten + 1, feedbackBuffer.getNumSamples());
     }
 }
 
