@@ -22,7 +22,7 @@ private:
     juce::Label sampleLabel;
     std::array<std::unique_ptr<NeonKnob>, 11> knobs;
     std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>, 11> attachments;
-    const std::array<juce::String,11> ids { "size","density","position","random","pitch","spread","attack","release","cutoff","resonance","reverb" };
+    const std::array<juce::String,11> ids { "size","density","spread","random","position","pitch","attack","release","cutoff","resonance","reverb" };
     void chooseSample();
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (GeroGrainAudioProcessorEditor)
 };
