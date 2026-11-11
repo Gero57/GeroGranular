@@ -62,6 +62,9 @@ private:
     juce::Reverb reverb;
     double currentSampleRate = 44100.0;
     double sourceSampleRate = 44100.0;
+    double lfoPhase = 0.0;
+    float lfoValue = 0.0f;
+    float lfoRandomValue = 0.0f;
     juce::Random random;
 
     void spawnGrain (int midiNote, float velocity);
