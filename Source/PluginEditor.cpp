@@ -51,7 +51,8 @@ GeroGrainAudioProcessorEditor::GeroGrainAudioProcessorEditor (GeroGrainAudioProc
     addAndMakeVisible(sampleLabel);
     sampleLabel.setText(processor.getSampleName(), juce::dontSendNotification);
     sampleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd8fbff));
-    sampleLabel.setJustificationType(juce::Justification::centred);
+    sampleLabel.setJustificationType(juce::Justification::centredLeft);
+    sampleLabel.setFont (juce::Font (13.0f));
 
     for (size_t i=0; i<knobs.size(); ++i)
     {
@@ -89,11 +90,11 @@ void GeroGrainAudioProcessorEditor::resized()
     };
 
     // Il pulsante e il nome del file seguono gli elementi già disegnati nel pannello.
-    place (loadButton, 55, 147, 48, 42);
+    place (loadButton, 344, 147, 42, 42);
     loadButton.setButtonText ("");
     loadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff08232c));
     loadButton.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
-    place (sampleLabel, 108, 147, 260, 42);
+    place (sampleLabel, 104, 147, 235, 42);
 
     // Centri delle manopole stampate sul pannello (coordinate immagine 1300 x 867).
     const std::array<juce::Point<float>, 11> centres {{
@@ -103,15 +104,15 @@ void GeroGrainAudioProcessorEditor::resized()
         {951, 306},   // Random
         {1075, 306},  // Position, per il prototipo
         {99, 497},    // Pitch
-        {601, 540},   // Attack
-        {858, 540},   // Release
-        {1033, 534},  // Cutoff
-        {1180, 534},  // Resonance
+        {601, 520},   // Attack
+        {858, 520},   // Release
+        {1033, 516},  // Cutoff
+        {1180, 516},  // Resonance
         {1216, 670}   // Reverb / Decay
     }};
     for (size_t i=0; i<knobs.size(); ++i)
     {
-        const float diameter = (i < 5 ? 66.0f : 62.0f);
+        const float diameter = (i < 5 ? 62.0f : 56.0f);
         place (*knobs[i], centres[i].x - diameter*0.5f,
                centres[i].y - diameter*0.5f, diameter, diameter);
     }
