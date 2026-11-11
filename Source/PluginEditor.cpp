@@ -56,6 +56,8 @@ GeroGrainAudioProcessorEditor::GeroGrainAudioProcessorEditor (GeroGrainAudioProc
     setupEffectButton (chorusButton);
     setupEffectButton (delayButton);
     setupEffectButton (reverbButton);
+    reverbAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>
+        (processor.parameters, "reverbon", reverbButton);
     setupEffectButton (velocityButton);
     addAndMakeVisible (velocityButton);
     velocityAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>
