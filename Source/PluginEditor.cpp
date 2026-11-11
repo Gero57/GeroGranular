@@ -45,6 +45,21 @@ GeroGrainAudioProcessorEditor::GeroGrainAudioProcessorEditor (GeroGrainAudioProc
     loadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff27323b));
     loadButton.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
 
+    auto setupEffectButton = [] (juce::TextButton& button)
+    {
+        button.setClickingTogglesState (true);
+        button.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff101820));
+        button.setColour (juce::TextButton::buttonOnColourId, juce::Colour (0xff07536b));
+        button.setColour (juce::TextButton::textColourOffId, juce::Colour (0xffdceaf2));
+        button.setColour (juce::TextButton::textColourOnId, juce::Colour (0xff8beaff));
+    };
+    setupEffectButton (chorusButton);
+    setupEffectButton (delayButton);
+    setupEffectButton (reverbButton);
+    addAndMakeVisible (chorusButton);
+    addAndMakeVisible (delayButton);
+    addAndMakeVisible (reverbButton);
+
     addAndMakeVisible (sampleLabel);
     sampleLabel.setText (processor.getSampleName(), juce::dontSendNotification);
     sampleLabel.setColour (juce::Label::textColourId, juce::Colour (0xffe2e8ed));
@@ -116,6 +131,23 @@ void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
     sectionTitle (612, 395, 250, "FILTER");
     sectionTitle (904, 395, 250, "EFFECTS");
 
+    auto panel = [&g] (int x, int y, int w, int h)
+    {
+        g.setColour (juce::Colour (0xff071019).withAlpha (0.38f));
+        g.fillRoundedRectangle ((float)x, (float)y, (float)w, (float)h, 9.0f);
+        g.setColour (juce::Colour (0xffa8bdcc).withAlpha (0.52f));
+        g.drawRoundedRectangle ((float)x, (float)y, (float)w, (float)h, 9.0f, 1.0f);
+    };
+    panel (18, 86, 420, 125);
+    panel (450, 86, 732, 125);
+    panel (18, 224, 480, 150);
+    panel (510, 224, 300, 150);
+    panel (822, 224, 360, 150);
+    panel (18, 388, 280, 150);
+    panel (310, 388, 280, 150);
+    panel (602, 388, 280, 150);
+    panel (894, 388, 288, 150);
+
     g.setColour (juce::Colour (0xffeff8ff).withAlpha (0.78f));
     g.setFont (juce::Font (9.0f));
     g.drawText ("EXPANSION AREA", 0, 748, getWidth(), 15, juce::Justification::centred);
@@ -125,6 +157,9 @@ void GeroGrainAudioProcessorEditor::resized()
 {
     loadButton.setBounds (34, 139, 58, 34);
     sampleLabel.setBounds (104, 139, 310, 34);
+    chorusButton.setBounds (910, 510, 76, 23);
+    delayButton.setBounds (994, 510, 76, 23);
+    reverbButton.setBounds (1078, 510, 92, 23);
 
     struct Group { int first, count, x, y, w; };
     const Group groups[] = {
