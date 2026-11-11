@@ -27,6 +27,8 @@ juce_add_plugin(GeroGrain
   EDITOR_WANTS_KEYBOARD_FOCUS TRUE
   COPY_PLUGIN_AFTER_BUILD FALSE)
 
+juce_generate_juce_header(GeroGrain)
+
 target_sources(GeroGrain PRIVATE
   Source/PluginProcessor.cpp
   Source/PluginEditor.cpp)
