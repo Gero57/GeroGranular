@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<defs>
+ <linearGradient id="body" x2="0" y2="1"><stop stop-color="#242a30"/><stop offset=".22" stop-color="#151a1f"/><stop offset=".72" stop-color="#0e1318"/><stop offset="1" stop-color="#20262c"/></linearGradient>
+ <linearGradient id="edge" x2="0" y2="1"><stop stop-color="#aab8c4"/><stop offset=".12" stop-color="#303b45"/><stop offset=".86" stop-color="#090d11"/><stop offset="1" stop-color="#81909d"/></linearGradient>
+ <linearGradient id="glint" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d8e8f6" stop-opacity=".25"/><stop offset=".35" stop-color="#7e9ab0" stop-opacity=".03"/><stop offset=".7" stop-color="#b8d3e6" stop-opacity=".12"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+ <pattern id="brush" width="38" height="16" patternUnits="userSpaceOnUse"><path d="M0 2H38 M7 7H33 M0 13H25" stroke="#b7c5d0" stroke-opacity=".055" stroke-width=".7"/></pattern>
+ <filter id="blur"><feGaussianBlur stdDeviation="16"/></filter>
+</defs>
+<rect width="1200" height="800" fill="url(#body)"/>
+<rect width="1200" height="800" fill="url(#brush)"/>
+<path d="M25 112 L520 12" stroke="#b9d8ee" stroke-opacity=".2" stroke-width="28" filter="url(#blur)"/>
+<path d="M710 790 L1180 660" stroke="#9ec5e3" stroke-opacity=".14" stroke-width="24" filter="url(#blur)"/>
+<path d="M40 94 L525 10 M680 790 L1170 660" stroke="url(#glint)" stroke-width="3" fill="none"/>
+<rect x="2" y="2" width="1196" height="796" rx="22" fill="none" stroke="url(#edge)" stroke-width="4"/>
+<rect x="10" y="10" width="1180" height="780" rx="17" fill="none" stroke="#05080b" stroke-width="7"/>
+<rect x="16" y="16" width="1168" height="768" rx="14" fill="none" stroke="#8294a3" stroke-opacity=".42"/>
+<path d="M32 17H1168" stroke="#e0edf7" stroke-opacity=".34" stroke-width="2"/>
+<g id="screws" fill="#343e47" stroke="#c2ced8" stroke-width="1.2">
+ <g transform="translate(22 22)"><circle r="10"/><circle r="6.5" fill="#111820"/><path d="M-4 4L4 -4" stroke="#d5e0e8" stroke-width="1.8"/></g>
+ <g transform="translate(1178 22)"><circle r="10"/><circle r="6.5" fill="#111820"/><path d="M-4 4L4 -4" stroke="#d5e0e8" stroke-width="1.8"/></g>
+ <g transform="translate(22 778)"><circle r="10"/><circle r="6.5" fill="#111820"/><path d="M-4 4L4 -4" stroke="#d5e0e8" stroke-width="1.8"/></g>
+ <g transform="translate(1178 778)"><circle r="10"/><circle r="6.5" fill="#111820"/><path d="M-4 4L4 -4" stroke="#d5e0e8" stroke-width="1.8"/></g>
+</g>
+</svg>
