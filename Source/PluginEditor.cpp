@@ -4,21 +4,42 @@
 NeonKnob::NeonKnob()
 {
     setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
-    setTextBoxStyle (juce::Slider::TextBoxBelow, false, 66, 18);
-    setColour (juce::Slider::rotarySliderFillColourId, juce::Colour(0xff00dfff));
-    setColour (juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xff153c49));
-    setColour (juce::Slider::thumbColourId, juce::Colour(0xffe9ffff));
-    setColour (juce::Slider::textBoxTextColourId, juce::Colour(0xffd8fbff));
-    setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+    setTextBoxStyle (juce::Slider::NoTextBox, false, 0, 0);
+    setRotaryParameters (juce::MathConstants<float>::pi * 1.2f,
+                        juce::MathConstants<float>::pi * 2.8f, true);
+    setMouseCursor (juce::MouseCursor::PointingHandCursor);
 }
+
 void NeonKnob::paint (juce::Graphics& g)
 {
-    juce::Slider::paint(g);
-    auto b = getLocalBounds().toFloat().reduced(5.0f);
-    auto c = b.getCentre();
-    g.setColour(juce::Colour(0x6600dfff));
-    g.drawEllipse(b, 1.5f);
+    auto b = getLocalBounds().toFloat().reduced (5.0f);
+    const auto centre = b.getCentre();
+    const float radius = juce::jmin (b.getWidth(), b.getHeight()) * 0.43f;
+
+    // Corpo opaco: copre il quadrante statico stampato nello sfondo.
+    g.setColour (juce::Colour (0xff07131a));
+    g.fillEllipse (centre.x - radius, centre.y - radius, radius * 2.0f, radius * 2.0f);
+
+    g.setColour (juce::Colour (0xff00dfff));
+    g.drawEllipse (centre.x - radius, centre.y - radius, radius * 2.0f, radius * 2.0f, 2.2f);
+    g.setColour (juce::Colour (0xff294b55));
+    g.drawEllipse (centre.x - radius + 4.0f, centre.y - radius + 4.0f,
+                   radius * 2.0f - 8.0f, radius * 2.0f - 8.0f, 1.2f);
+
+    const float proportion = (float) ((getValue() - getMinimum()) /
+                                      juce::jmax (0.000001, getMaximum() - getMinimum()));
+    const float angle = juce::MathConstants<float>::pi * 1.2f
+                      + proportion * juce::MathConstants<float>::pi * 1.6f;
+    const float pointerRadius = radius * 0.70f;
+    juce::Path pointer;
+    pointer.startNewSubPath (centre.x, centre.y);
+    pointer.lineTo (centre.x + std::cos (angle) * pointerRadius,
+                    centre.y + std::sin (angle) * pointerRadius);
+    g.setColour (juce::Colour (0xfff2ffff));
+    g.strokePath (pointer, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved,
+                                                 juce::PathStrokeType::rounded));
+    g.setColour (juce::Colour (0xff00dfff));
+    g.fillEllipse (centre.x - 3.0f, centre.y - 3.0f, 6.0f, 6.0f);
 }
 
 GeroGrainAudioProcessorEditor::GeroGrainAudioProcessorEditor (GeroGrainAudioProcessor& p)
@@ -31,14 +52,17 @@ GeroGrainAudioProcessorEditor::GeroGrainAudioProcessorEditor (GeroGrainAudioProc
     sampleLabel.setText(processor.getSampleName(), juce::dontSendNotification);
     sampleLabel.setColour(juce::Label::textColourId, juce::Colour(0xffd8fbff));
     sampleLabel.setJustificationType(juce::Justification::centred);
+
     for (size_t i=0; i<knobs.size(); ++i)
     {
         knobs[i] = std::make_unique<NeonKnob>();
         addAndMakeVisible(*knobs[i]);
-        attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(processor.parameters, ids[i], *knobs[i]);
+        attachments[i] = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>
+            (processor.parameters, ids[i], *knobs[i]);
     }
     setSize(1200, 800);
 }
+
 void GeroGrainAudioProcessorEditor::chooseSample()
 {
     auto chooser = std::make_shared<juce::FileChooser>("Load audio source", juce::File{}, "*.wav;*.aif;*.aiff;*.flac;*.ogg");
@@ -49,24 +73,46 @@ void GeroGrainAudioProcessorEditor::chooseSample()
                 sampleLabel.setText(processor.getSampleName(), juce::dontSendNotification);
         });
 }
+
 void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    if (background.isValid()) g.drawImage(background, getLocalBounds().toFloat());
+    if (background.isValid()) g.drawImage (background, getLocalBounds().toFloat());
     else { g.fillAll(juce::Colour(0xff071018)); g.setColour(juce::Colours::white); g.drawText("GeroGrain", getLocalBounds(), juce::Justification::centred); }
 }
+
 void GeroGrainAudioProcessorEditor::resized()
 {
-    const float sx = getWidth()/1200.0f, sy = getHeight()/800.0f;
-    auto place = [sx,sy](juce::Component& c,float x,float y,float w,float h){ c.setBounds((int)(x*sx),(int)(y*sy),(int)(w*sx),(int)(h*sy)); };
-    place(loadButton, 54, 126, 120, 34);
-    place(sampleLabel, 176, 126, 285, 34);
-    const std::array<juce::Rectangle<float>,11> boxes {{
-      {842,145,105,105},{970,145,105,105},{1055,310,90,90},{842,290,105,105},
-      {62,480,95,95},{205,480,95,95},{565,585,70,70},{660,585,70,70},
-      {970,585,80,80},{1070,585,80,80},{1220,585,80,80}
-    }};
-    for (size_t i=0;i<knobs.size();++i)
+    const float sx = getWidth() / 1300.0f, sy = getHeight() / 867.0f;
+    auto place = [sx,sy](juce::Component& c, float x, float y, float w, float h)
     {
-        auto r=boxes[i]; place(*knobs[i],r.getX(),r.getY(),r.getWidth(),r.getHeight());
+        c.setBounds ((int)(x*sx), (int)(y*sy), (int)(w*sx), (int)(h*sy));
+    };
+
+    // Il pulsante e il nome del file seguono gli elementi già disegnati nel pannello.
+    place (loadButton, 55, 147, 48, 42);
+    loadButton.setButtonText ("");
+    loadButton.setColour (juce::TextButton::buttonColourId, juce::Colour (0xff08232c));
+    loadButton.setColour (juce::TextButton::textColourOffId, juce::Colours::white);
+    place (sampleLabel, 108, 147, 260, 42);
+
+    // Centri delle manopole stampate sul pannello (coordinate immagine 1300 x 867).
+    const std::array<juce::Point<float>, 11> centres {{
+        {951, 189},   // Size
+        {1075, 189},  // Density
+        {1200, 189},  // Spread
+        {951, 306},   // Random
+        {1075, 306},  // Position, per il prototipo
+        {99, 497},    // Pitch
+        {601, 540},   // Attack
+        {858, 540},   // Release
+        {1033, 534},  // Cutoff
+        {1180, 534},  // Resonance
+        {1216, 670}   // Reverb / Decay
+    }};
+    for (size_t i=0; i<knobs.size(); ++i)
+    {
+        const float diameter = (i < 5 ? 66.0f : 62.0f);
+        place (*knobs[i], centres[i].x - diameter*0.5f,
+               centres[i].y - diameter*0.5f, diameter, diameter);
     }
 }
