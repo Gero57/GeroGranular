@@ -97,60 +97,83 @@ void GeroGrainAudioProcessorEditor::chooseSample()
 
 void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    // Fixed 1200x800 dark brushed-metal panel; JUCE controls stay above it.
-    // All JUCE controls are child components and therefore remain above it.
-    static const juce::Image backgroundImage = juce::ImageCache::getFromMemory
-        (BinaryData::BaseGrain_svg, BinaryData::BaseGrain_svgSize);
+    // Fixed 1200 x 800 dark brushed-metal chassis, drawn natively in JUCE.
+    auto bounds = getLocalBounds().toFloat();
+    juce::ColourGradient base (juce::Colour (0xff20262c), 0.0f, 0.0f,
+                               juce::Colour (0xff090d12), 0.0f, (float)getHeight(), false);
+    base.addColour (0.28, juce::Colour (0xff171d23));
+    base.addColour (0.62, juce::Colour (0xff10161c));
+    g.setGradientFill (base);
+    g.fillAll();
 
-    if (backgroundImage.isValid())
-        g.drawImage (backgroundImage, getLocalBounds().toFloat());
-    else
-        g.fillAll (juce::Colour (0xff123b68));
+    for (int y=20; y<getHeight()-18; y+=4)
+    {
+        g.setColour (juce::Colours::white.withAlpha ((y%20==0) ? 0.030f : 0.012f));
+        g.drawHorizontalLine (y, 12.0f, (float)getWidth()-12.0f);
+    }
+    juce::ColourGradient glint (juce::Colour (0xffb8d4e8).withAlpha (0.10f), 45.0f, 90.0f,
+                                juce::Colour (0xffb8d4e8).withAlpha (0.0f), 560.0f, 18.0f, false);
+    g.setGradientFill (glint);
+    g.drawLine (35.0f, 105.0f, 555.0f, 18.0f, 5.0f);
+    juce::ColourGradient lowerGlint (juce::Colour (0xff9bbbd2).withAlpha (0.0f), 650.0f, 790.0f,
+                                     juce::Colour (0xff9bbbd2).withAlpha (0.07f), 1160.0f, 690.0f, false);
+    g.setGradientFill (lowerGlint);
+    g.drawLine (650.0f, 790.0f, 1160.0f, 690.0f, 4.0f);
 
-    g.setColour (juce::Colour (0xfff5fbff));
+    g.setColour (juce::Colour (0xff82909b));
+    g.drawRoundedRectangle (bounds.reduced (2.0f), 20.0f, 2.0f);
+    g.setColour (juce::Colour (0xff05080c));
+    g.drawRoundedRectangle (bounds.reduced (8.0f), 16.0f, 4.0f);
+    g.setColour (juce::Colour (0xff56636e).withAlpha (0.75f));
+    g.drawRoundedRectangle (bounds.reduced (14.0f), 13.0f, 1.0f);
+
+    auto screw = [&g] (float x, float y)
+    {
+        g.setColour (juce::Colour (0xff05080b));
+        g.fillEllipse (x-10.0f, y-10.0f, 20.0f, 20.0f);
+        g.setColour (juce::Colour (0xff9ba8b2));
+        g.drawEllipse (x-9.0f, y-9.0f, 18.0f, 18.0f, 1.0f);
+        g.setColour (juce::Colour (0xff3c4852));
+        g.fillEllipse (x-6.5f, y-6.5f, 13.0f, 13.0f);
+        g.setColour (juce::Colour (0xffd5e0e8));
+        g.drawLine (x-3.5f, y+3.5f, x+3.5f, y-3.5f, 1.5f);
+    };
+    screw (22.0f,22.0f); screw ((float)getWidth()-22.0f,22.0f);
+    screw (22.0f,(float)getHeight()-22.0f);
+    screw ((float)getWidth()-22.0f,(float)getHeight()-22.0f);
+
+    g.setColour (juce::Colour (0xfff1f5f8));
     g.setFont (juce::Font (28.0f, juce::Font::bold));
     g.drawText ("GeroGrain", 0, 13, getWidth(), 36, juce::Justification::centred);
-    g.setColour (juce::Colour (0xffe0f4ff));
+    g.setColour (juce::Colour (0xffc7d1d9));
     g.setFont (juce::Font (10.0f));
     g.drawText ("GRANULAR SYNTHESIS", 0, 48, getWidth(), 18, juce::Justification::centred);
 
-    auto sectionTitle = [&g] (int x, int y, int w, const juce::String& title)
+    auto panel = [&g] (int x, int y, int w, int h, const juce::String& title)
     {
-        g.setColour (juce::Colour (0xfff3faff).withAlpha (0.96f));
-        g.setFont (juce::Font (13.0f, juce::Font::bold));
-        g.drawText (title, x, y, w, 18, juce::Justification::centredLeft);
-    };
-
-    sectionTitle (28, 93, 390, "SOURCE");
-    sectionTitle (460, 93, 700, "GRAIN ENGINE");
-    sectionTitle (28, 231, 450, "POSITION");
-    sectionTitle (520, 231, 270, "PITCH");
-    sectionTitle (832, 231, 330, "ENVELOPE");
-    sectionTitle (28, 395, 250, "LFO");
-    sectionTitle (320, 395, 250, "MOD MATRIX");
-    sectionTitle (612, 395, 250, "FILTER");
-    sectionTitle (904, 395, 250, "EFFECTS");
-
-    auto panel = [&g] (int x, int y, int w, int h)
-    {
-        g.setColour (juce::Colour (0xff071019).withAlpha (0.38f));
+        g.setColour (juce::Colour (0xff080d12).withAlpha (0.56f));
         g.fillRoundedRectangle ((float)x, (float)y, (float)w, (float)h, 9.0f);
-        g.setColour (juce::Colour (0xffa8bdcc).withAlpha (0.52f));
+        g.setColour (juce::Colour (0xff93a6b4).withAlpha (0.62f));
         g.drawRoundedRectangle ((float)x, (float)y, (float)w, (float)h, 9.0f, 1.0f);
+        g.setColour (juce::Colour (0xffe3eaf0));
+        g.setFont (juce::Font (13.0f, juce::Font::bold));
+        g.drawText (title, x+12, y+7, w-24, 18, juce::Justification::centredLeft);
     };
-    panel (18, 86, 420, 125);
-    panel (450, 86, 732, 125);
-    panel (18, 224, 480, 150);
-    panel (510, 224, 300, 150);
-    panel (822, 224, 360, 150);
-    panel (18, 388, 280, 150);
-    panel (310, 388, 280, 150);
-    panel (602, 388, 280, 150);
-    panel (894, 388, 288, 150);
+    panel (18,86,420,125,"SOURCE");
+    panel (450,86,732,125,"GRAIN ENGINE");
+    panel (18,224,480,150,"POSITION");
+    panel (510,224,300,150,"PITCH");
+    panel (822,224,360,150,"ENVELOPE");
+    panel (18,388,280,150,"LFO");
+    panel (310,388,280,150,"MOD MATRIX");
+    panel (602,388,280,150,"FILTER");
+    panel (894,388,288,150,"EFFECTS");
 
-    g.setColour (juce::Colour (0xffeff8ff).withAlpha (0.78f));
+    g.setColour (juce::Colour (0xffaebbc5).withAlpha (0.55f));
+    g.drawLine (20.0f,560.0f,(float)getWidth()-20.0f,560.0f,0.8f);
+    g.setColour (juce::Colour (0xffaebbc5).withAlpha (0.48f));
     g.setFont (juce::Font (9.0f));
-    g.drawText ("EXPANSION AREA", 0, 748, getWidth(), 15, juce::Justification::centred);
+    g.drawText ("EXPANSION AREA",0,748,getWidth(),15,juce::Justification::centred);
 }
 
 void GeroGrainAudioProcessorEditor::resized()
