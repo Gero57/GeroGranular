@@ -45,7 +45,9 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("effectmix","Effect Mix",0.0f,1.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("decay","Decay",0.001f,3.0f,0.25f),
       std::make_unique<juce::AudioParameterBool>("velocity","Velocity",true),
-      std::make_unique<juce::AudioParameterBool>("reverbon","Reverb On",true)
+      std::make_unique<juce::AudioParameterBool>("reverbon","Reverb On",true),
+      std::make_unique<juce::AudioParameterBool>("choruson","Chorus On",false),
+      std::make_unique<juce::AudioParameterBool>("delayon","Delay On",false)
    })
 {
     formats.registerBasicFormats();
@@ -192,6 +194,8 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float effectMix = parameters.getRawParameterValue("effectmix")->load();
     const float chorusAmount = parameters.getRawParameterValue("chorus")->load();
     const float delayAmount = parameters.getRawParameterValue("delay")->load();
+    const bool chorusEnabled = parameters.getRawParameterValue("choruson")->load() >= 0.5f;
+    const bool delayEnabled = parameters.getRawParameterValue("delayon")->load() >= 0.5f;
     const bool reverbEnabled = parameters.getRawParameterValue("reverbon")->load() >= 0.5f;
     const float filterCoefficient = juce::jlimit (0.001f, 0.8f, 2.0f * std::sin (juce::MathConstants<float>::pi * cutoff / (float) currentSampleRate));
     const float damping = 1.0f - resonance * 0.92f;
@@ -387,17 +391,16 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             buffer.setSample (1, i, dryRight * (1.0f - mix) + wetRight * mix);
         }
 
-        // Chorus: short modulated stereo delay; Delay: regenerative 360 ms echo.
-        if (channels >= 2 && (chorusAmount > 0.0001f || delayAmount > 0.0001f))
+        // Independent chorus and delay switches. The chorus uses two
+        // continuously modulated cross-stereo taps; the delay has its own
+        // regeneration path. The buffer is always fed with dry audio.
+        if (channels >= 2)
         {
             const int ringLength = effectBuffer.getNumSamples();
             const float chorusLfo = std::sin ((float) chorusPhase * juce::MathConstants<float>::twoPi);
-            chorusPhase += 0.23 / juce::jmax (1.0, currentSampleRate);
-            if (chorusPhase >= 1.0) chorusPhase -= 1.0;
-
-            const float chorusDelayL = (0.014f + 0.006f * chorusLfo) * (float) currentSampleRate;
-            const float chorusDelayR = (0.014f - 0.006f * chorusLfo) * (float) currentSampleRate;
-            const float delaySamples = 0.36f * (float) currentSampleRate;
+            chorusPhase += 0.32 / juce::jmax (1.0, currentSampleRate);
+            if (chorusPhase >= 1.0)
+                chorusPhase -= 1.0;
 
             auto readTap = [this, ringLength] (int channel, float delayInSamples)
             {
@@ -414,25 +417,39 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
             const float dryL = buffer.getSample (0, i);
             const float dryR = buffer.getSample (1, i);
-            const float chorusL = readTap (0, chorusDelayL);
-            const float chorusR = readTap (1, chorusDelayR);
-            const float echoL = readTap (0, delaySamples);
-            const float echoR = readTap (1, delaySamples);
-            const float outputL = dryL + chorusL * chorusAmount * 0.42f + echoL * delayAmount * 0.48f;
-            const float outputR = dryR + chorusR * chorusAmount * 0.42f + echoR * delayAmount * 0.48f;
+            float outputL = dryL;
+            float outputR = dryR;
+            float echoL = 0.0f;
+            float echoR = 0.0f;
+
+            if (chorusEnabled && chorusAmount > 0.0001f)
+            {
+                const float delayL = (0.024f + 0.010f * chorusLfo) * (float) currentSampleRate;
+                const float delayR = (0.024f - 0.010f * chorusLfo) * (float) currentSampleRate;
+                const float chorusL = readTap (1, delayL);
+                const float chorusR = readTap (0, delayR);
+                const float wet = chorusAmount * 0.72f;
+                outputL += chorusL * wet;
+                outputR += chorusR * wet;
+            }
+
+            if (delayEnabled && delayAmount > 0.0001f)
+            {
+                const float delaySamples = 0.36f * (float) currentSampleRate;
+                echoL = readTap (0, delaySamples);
+                echoR = readTap (1, delaySamples);
+                const float wet = delayAmount * 0.52f;
+                outputL += echoL * wet;
+                outputR += echoR * wet;
+            }
+
             buffer.setSample (0, i, outputL);
             buffer.setSample (1, i, outputR);
 
-            const float regeneration = 0.18f + delayAmount * 0.30f;
+            const float regeneration = delayEnabled ? (0.18f + delayAmount * 0.30f) : 0.0f;
             effectBuffer.setSample (0, effectWritePosition, std::tanh (dryL + echoL * regeneration));
             effectBuffer.setSample (1, effectWritePosition, std::tanh (dryR + echoR * regeneration));
             effectWritePosition = (effectWritePosition + 1) % ringLength;
-        }
-        else if (channels >= 2)
-        {
-            effectBuffer.setSample (0, effectWritePosition, buffer.getSample (0, i));
-            effectBuffer.setSample (1, effectWritePosition, buffer.getSample (1, i));
-            effectWritePosition = (effectWritePosition + 1) % effectBuffer.getNumSamples();
         }
 
         // Capture the post-filter/effect signal. New feedback grains read it
