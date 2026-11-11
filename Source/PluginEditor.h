@@ -20,6 +20,7 @@ private:
     GeroGrainAudioProcessor& processor;
     juce::TextButton loadButton { "LOAD" };
     juce::Label sampleLabel;
+    juce::TextButton chorusButton { "CHORUS" }, delayButton { "DELAY" }, reverbButton { "REVERB" };
     static constexpr size_t knobCount = 30;
     std::array<std::unique_ptr<NeonKnob>, knobCount> knobs;
     std::array<std::unique_ptr<juce::Label>, knobCount> knobLabels;
