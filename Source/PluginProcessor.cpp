@@ -65,6 +65,10 @@ void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
     feedbackBuffer.clear();
     feedbackWritePosition = 0;
     feedbackSamplesWritten = 0;
+    effectBuffer.setSize (2, juce::jmax (2, (int) std::ceil (sr * 2.0)));
+    effectBuffer.clear();
+    effectWritePosition = 0;
+    chorusPhase = 0.0;
     lfoPhase = 0.0;
     lfoValue = 0.0f;
     lfoRandomValue = random.nextFloat() * 2.0f - 1.0f;
@@ -186,6 +190,8 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float driveDb = parameters.getRawParameterValue("drive")->load();
     const float reverbAmount = parameters.getRawParameterValue("reverb")->load();
     const float effectMix = parameters.getRawParameterValue("effectmix")->load();
+    const float chorusAmount = parameters.getRawParameterValue("chorus")->load();
+    const float delayAmount = parameters.getRawParameterValue("delay")->load();
     const bool reverbEnabled = parameters.getRawParameterValue("reverbon")->load() >= 0.5f;
     const float filterCoefficient = juce::jlimit (0.001f, 0.8f, 2.0f * std::sin (juce::MathConstants<float>::pi * cutoff / (float) currentSampleRate));
     const float damping = 1.0f - resonance * 0.92f;
@@ -379,6 +385,54 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             const float mix = juce::jlimit (0.0f, 1.0f, effectMix);
             buffer.setSample (0, i, dryLeft * (1.0f - mix) + wetLeft * mix);
             buffer.setSample (1, i, dryRight * (1.0f - mix) + wetRight * mix);
+        }
+
+        // Chorus: short modulated stereo delay; Delay: regenerative 360 ms echo.
+        if (channels >= 2 && (chorusAmount > 0.0001f || delayAmount > 0.0001f))
+        {
+            const int ringLength = effectBuffer.getNumSamples();
+            const float chorusLfo = std::sin ((float) chorusPhase * juce::MathConstants<float>::twoPi);
+            chorusPhase += 0.23 / juce::jmax (1.0, currentSampleRate);
+            if (chorusPhase >= 1.0) chorusPhase -= 1.0;
+
+            const float chorusDelayL = (0.014f + 0.006f * chorusLfo) * (float) currentSampleRate;
+            const float chorusDelayR = (0.014f - 0.006f * chorusLfo) * (float) currentSampleRate;
+            const float delaySamples = 0.36f * (float) currentSampleRate;
+
+            auto readTap = [this, ringLength] (int channel, float delayInSamples)
+            {
+                float readPosition = (float) effectWritePosition - delayInSamples;
+                while (readPosition < 0.0f) readPosition += (float) ringLength;
+                while (readPosition >= (float) ringLength) readPosition -= (float) ringLength;
+                const int indexA = (int) readPosition;
+                const int indexB = (indexA + 1) % ringLength;
+                const float fraction = readPosition - (float) indexA;
+                const float a = effectBuffer.getSample (channel, indexA);
+                const float b = effectBuffer.getSample (channel, indexB);
+                return a + (b - a) * fraction;
+            };
+
+            const float dryL = buffer.getSample (0, i);
+            const float dryR = buffer.getSample (1, i);
+            const float chorusL = readTap (0, chorusDelayL);
+            const float chorusR = readTap (1, chorusDelayR);
+            const float echoL = readTap (0, delaySamples);
+            const float echoR = readTap (1, delaySamples);
+            const float outputL = dryL + chorusL * chorusAmount * 0.42f + echoL * delayAmount * 0.48f;
+            const float outputR = dryR + chorusR * chorusAmount * 0.42f + echoR * delayAmount * 0.48f;
+            buffer.setSample (0, i, outputL);
+            buffer.setSample (1, i, outputR);
+
+            const float regeneration = 0.18f + delayAmount * 0.30f;
+            effectBuffer.setSample (0, effectWritePosition, std::tanh (dryL + echoL * regeneration));
+            effectBuffer.setSample (1, effectWritePosition, std::tanh (dryR + echoR * regeneration));
+            effectWritePosition = (effectWritePosition + 1) % ringLength;
+        }
+        else if (channels >= 2)
+        {
+            effectBuffer.setSample (0, effectWritePosition, buffer.getSample (0, i));
+            effectBuffer.setSample (1, effectWritePosition, buffer.getSample (1, i));
+            effectWritePosition = (effectWritePosition + 1) % effectBuffer.getNumSamples();
         }
 
         // Capture the post-filter/effect signal. New feedback grains read it
