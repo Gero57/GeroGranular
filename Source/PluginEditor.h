@@ -23,6 +23,7 @@ private:
     juce::TextButton chorusButton { "CHORUS" }, delayButton { "DELAY" }, reverbButton { "REVERB" };
     juce::TextButton velocityButton { "VELOCITY ON" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> velocityAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> reverbAttachment;
     static constexpr size_t knobCount = 30;
     std::array<std::unique_ptr<NeonKnob>, knobCount> knobs;
     std::array<std::unique_ptr<juce::Label>, knobCount> knobLabels;
