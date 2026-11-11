@@ -56,6 +56,10 @@ GeroGrainAudioProcessorEditor::GeroGrainAudioProcessorEditor (GeroGrainAudioProc
     setupEffectButton (chorusButton);
     setupEffectButton (delayButton);
     setupEffectButton (reverbButton);
+    setupEffectButton (velocityButton);
+    addAndMakeVisible (velocityButton);
+    velocityAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>
+        (processor.parameters, "velocity", velocityButton);
     addAndMakeVisible (chorusButton);
     addAndMakeVisible (delayButton);
     addAndMakeVisible (reverbButton);
@@ -192,6 +196,7 @@ void GeroGrainAudioProcessorEditor::resized()
     chorusButton.setBounds (910, 510, 76, 23);
     delayButton.setBounds (994, 510, 76, 23);
     reverbButton.setBounds (1078, 510, 92, 23);
+    velocityButton.setBounds (34, 578, 120, 28);
 
     struct Group { int first, count, x, y, w; };
     const Group groups[] = {
