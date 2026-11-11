@@ -11,8 +11,6 @@ FetchContent_Declare(JUCE
   GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(JUCE)
 
-juce_add_binary_data(GeroGrainAssets SOURCES BaseGranulare.png)
-
 juce_add_plugin(GeroGrain
   COMPANY_NAME "GeroAudio"
   BUNDLE_ID "com.geroaudio.gerograin"
@@ -34,7 +32,6 @@ target_sources(GeroGrain PRIVATE
   Source/PluginEditor.cpp)
 target_include_directories(GeroGrain PRIVATE Source)
 target_link_libraries(GeroGrain PRIVATE
-  GeroGrainAssets
   juce::juce_audio_utils
   juce::juce_dsp
   juce::juce_gui_extra
