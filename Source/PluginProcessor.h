@@ -43,6 +43,7 @@ private:
         int length = 1;
         float gain = 0.0f;
         float pan = 0.0f;
+        int midiNote = 60;
     };
 
     juce::AudioFormatManager formats;
@@ -53,6 +54,11 @@ private:
     std::array<bool, 128> heldNotes {};
     std::array<float, 128> noteVelocities {};
     std::array<int, 128> noteSpawnCounters {};
+    std::array<float, 128> noteEnvelopes {};
+    std::array<bool, 128> noteReleasing {};
+    std::array<float, 2> filterLow {};
+    std::array<float, 2> filterBand {};
+    juce::dsp::Reverb reverb;
     double currentSampleRate = 44100.0;
     double sourceSampleRate = 44100.0;
     juce::Random random;
