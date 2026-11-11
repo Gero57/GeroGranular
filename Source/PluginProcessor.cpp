@@ -197,10 +197,22 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             }
             else if (noteReleasing[noteIndex])
             {
+                // Keep generating grains while the release envelope fades out.
+                // Otherwise the last grains expire in at most 0.5 seconds and
+                // the long release becomes inaudible.
+                if (++noteSpawnCounters[noteIndex] >= interval)
+                {
+                    noteSpawnCounters[noteIndex] = 0;
+                    spawnGrain (n, noteVelocities[noteIndex]);
+                }
+
                 const float releaseStep = juce::jmax (0.000001f, 1.0f / juce::jmax (1.0f, releaseSeconds * (float) currentSampleRate));
                 noteEnvelopes[noteIndex] = juce::jmax (0.0f, noteEnvelopes[noteIndex] - releaseStep);
                 if (noteEnvelopes[noteIndex] <= 0.0f)
+                {
                     noteReleasing[noteIndex] = false;
+                    noteSpawnCounters[noteIndex] = 0;
+                }
             }
         }
         for (auto& g : grains)
