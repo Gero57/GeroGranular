@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GeroGrain — test manopola</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#080d13;color:#dffaff;font-family:system-ui,sans-serif}
+main{width:min(100vw,1536px);margin:0 auto;padding:18px}
+.note{font-size:14px;color:#9bb9c4;margin:0 0 12px}
+.stage{position:relative;width:100%;aspect-ratio:3/2;overflow:hidden;user-select:none;touch-action:pan-y}
+.panel{display:block;width:100%;height:100%;object-fit:fill}
+.knob{position:absolute;left:73.1%;top:21.7%;width:6.1%;aspect-ratio:1;border-radius:50%;transform:translate(-50%,-50%);cursor:ns-resize;touch-action:none;filter:drop-shadow(0 0 8px #00dfff80)}
+.knob:before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 220deg,#05131c 0 9%,#00dfff 10% 12%,#163f4c 13% 28%,#02070b 29% 70%,#c7faff 71% 73%,#07131b 74%);box-shadow:inset 0 0 0 2px #80f4ff8c,inset 0 -7px 10px #000,0 2px 5px #000}
+.face{position:absolute;inset:12%;border-radius:50%;background:radial-gradient(circle at 35% 28%,#66727a,#252d34 42%,#080d12 76%);border:1px solid #b5eaff80;box-shadow:inset 0 2px 5px #ffffff55,inset 0 -5px 9px #000,0 0 0 2px #07151e}
+.indicator{position:absolute;left:49%;top:16%;width:3px;height:29%;border-radius:3px;background:#eaffff;box-shadow:0 0 7px #00eaff,0 0 13px #00cfff;transform-origin:50% 122%;transform:rotate(0deg)}
+.readout{position:absolute;left:73.1%;top:27.4%;transform:translateX(-50%);font:600 clamp(9px,1vw,14px) system-ui;color:#d8fbff;text-shadow:0 0 8px #00dfff;text-align:center;pointer-events:none}
+@media(max-width:600px){main{padding:6px}.note{font-size:11px}}
+</style>
+</head>
+<body>
+<main>
+<p class="note">Prototipo interattivo: trascina la manopola verso l’alto o il basso per ruotarla. Doppio clic = posizione centrale.</p>
+<div class="stage" id="stage">
+<img class="panel" src="BaseGranulare.png" alt="Pannello GeroGrain">
+<div class="knob" id="knob" role="slider" aria-label="Grain Size" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" tabindex="0"><div class="face"><div class="indicator" id="indicator"></div></div></div>
+<div class="readout" id="readout">GRAIN SIZE · 50%</div>
+</div>
+</main>
+<script>
+(()=>{
+ const knob=document.getElementById('knob'), indicator=document.getElementById('indicator'), readout=document.getElementById('readout');
+ let value=50, dragging=false, startY=0, startValue=50;
+ const draw=()=>{const angle=-135+value*2.7;indicator.style.transform='rotate('+angle+'deg)';readout.textContent='GRAIN SIZE · '+Math.round(value)+'%';knob.setAttribute('aria-valuenow',Math.round(value));};
+ knob.addEventListener('pointerdown',e=>{dragging=true;startY=e.clientY;startValue=value;knob.setPointerCapture(e.pointerId);e.preventDefault();});
+ knob.addEventListener('pointermove',e=>{if(!dragging)return;value=Math.max(0,Math.min(100,startValue+(startY-e.clientY)*0.55));draw();});
+ knob.addEventListener('pointerup',()=>dragging=false);knob.addEventListener('pointercancel',()=>dragging=false);
+ knob.addEventListener('dblclick',()=>{value=50;draw();});
+ knob.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key==='ArrowRight'){value=Math.min(100,value+1);draw();e.preventDefault()}if(e.key==='ArrowDown'||e.key==='ArrowLeft'){value=Math.max(0,value-1);draw();e.preventDefault()}});
+ draw();
+})();
+</script>
+</body></html>
