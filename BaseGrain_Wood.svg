@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+<defs>
+ <linearGradient id="body" x2="0" y2="1"><stop stop-color="#30251e"/><stop offset=".25" stop-color="#1b1715"/><stop offset=".72" stop-color="#100f0e"/><stop offset="1" stop-color="#241a15"/></linearGradient>
+ <linearGradient id="edge" x2="0" y2="1"><stop stop-color="#b7a18a"/><stop offset=".16" stop-color="#54483d"/><stop offset=".86" stop-color="#0a0908"/><stop offset="1" stop-color="#a58c73"/></linearGradient>
+ <linearGradient id="shine" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffe1b5" stop-opacity=".2"/><stop offset=".4" stop-color="#d5a879" stop-opacity=".02"/><stop offset=".8" stop-color="#e6c49c" stop-opacity=".1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+ <pattern id="grain" width="260" height="48" patternUnits="userSpaceOnUse"><path d="M-20 8 C40 2 90 14 145 8 S225 3 280 10 M-20 22 C40 16 92 28 150 22 S230 17 280 24 M-20 39 C42 33 95 44 155 38 S230 34 280 41" fill="none" stroke="#c99d70" stroke-opacity=".12" stroke-width="1"/><path d="M0 14 C70 9 110 20 180 14" fill="none" stroke="#070504" stroke-opacity=".4" stroke-width="2"/></pattern>
+ <filter id="blur"><feGaussianBlur stdDeviation="17"/></filter>
+</defs>
+<rect width="1200" height="800" fill="url(#body)"/>
+<rect width="1200" height="800" fill="url(#grain)"/>
+<path d="M55 100 L540 8" stroke="#f4d2a8" stroke-opacity=".15" stroke-width="30" filter="url(#blur)"/>
+<path d="M670 790 L1160 665" stroke="#d9b48c" stroke-opacity=".13" stroke-width="24" filter="url(#blur)"/>
+<path d="M45 92 L530 8 M680 790 L1165 660" stroke="url(#shine)" stroke-width="3" fill="none"/>
+<rect x="2" y="2" width="1196" height="796" rx="22" fill="none" stroke="url(#edge)" stroke-width="4"/>
+<rect x="10" y="10" width="1180" height="780" rx="17" fill="none" stroke="#090706" stroke-width="7"/>
+<rect x="16" y="16" width="1168" height="768" rx="14" fill="none" stroke="#b99a7a" stroke-opacity=".35"/>
+<path d="M32 17H1168" stroke="#f4ddc2" stroke-opacity=".28" stroke-width="2"/>
+<g fill="#46372b" stroke="#d2b99d" stroke-width="1.2">
+ <g transform="translate(22 22)"><circle r="10"/><circle r="6.5" fill="#15100c"/><path d="M-4 4L4 -4" stroke="#ead8c3" stroke-width="1.8"/></g>
+ <g transform="translate(1178 22)"><circle r="10"/><circle r="6.5" fill="#15100c"/><path d="M-4 4L4 -4" stroke="#ead8c3" stroke-width="1.8"/></g>
+ <g transform="translate(22 778)"><circle r="10"/><circle r="6.5" fill="#15100c"/><path d="M-4 4L4 -4" stroke="#ead8c3" stroke-width="1.8"/></g>
+ <g transform="translate(1178 778)"><circle r="10"/><circle r="6.5" fill="#15100c"/><path d="M-4 4L4 -4" stroke="#ead8c3" stroke-width="1.8"/></g>
+</g>
+</svg>
