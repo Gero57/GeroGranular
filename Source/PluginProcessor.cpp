@@ -33,7 +33,8 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("chorus","Chorus",0.0f,1.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("delay","Delay",0.0f,1.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("effectmix","Effect Mix",0.0f,1.0f,0.25f),
-      std::make_unique<juce::AudioParameterFloat>("decay","Decay",0.001f,3.0f,0.25f)
+      std::make_unique<juce::AudioParameterFloat>("decay","Decay",0.001f,3.0f,0.25f),
+      std::make_unique<juce::AudioParameterBool>("velocity","Velocity",true)
    })
 {
     formats.registerBasicFormats();
@@ -97,7 +98,8 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         const double pitchRatio = std::pow(2.0, (note - 60 + pitch) / 12.0);
         const double sampleRateRatio = sourceSampleRate / juce::jmax (1.0, currentSampleRate);
         g.increment = pitchRatio * sampleRateRatio;
-        g.gain = velocity * 0.22f;
+        const bool velocityEnabled = parameters.getRawParameterValue("velocity")->load() >= 0.5f;
+        g.gain = (velocityEnabled ? velocity : 1.0f) * 0.22f;
         g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread;
         g.midiNote = note;
         g.active = true;
