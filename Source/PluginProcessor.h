@@ -51,9 +51,10 @@ private:
     juce::CriticalSection sampleLock;
     std::array<Grain, 256> grains {};
     std::array<bool, 128> heldNotes {};
+    std::array<float, 128> noteVelocities {};
+    std::array<int, 128> noteSpawnCounters {};
     double currentSampleRate = 44100.0;
     double sourceSampleRate = 44100.0;
-    int spawnCounter = 0;
     juce::Random random;
 
     void spawnGrain (int midiNote, float velocity);
