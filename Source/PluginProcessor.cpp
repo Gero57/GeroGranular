@@ -48,7 +48,7 @@ bool GeroGrainAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
 {
     currentSampleRate = sr;
-    spawnCounter = 0;
+    noteSpawnCounters.fill (0);
     for (auto& g : grains) g.active = false;
 }
 
@@ -98,24 +98,44 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const juce::ScopedTryLock lock (sampleLock);
     if (!lock.isLocked() || source.getNumSamples() < 2) return;
 
+    const float density = parameters.getRawParameterValue("density")->load();
+    const int interval = juce::jmax (1, (int) (currentSampleRate / juce::jmax (1.0f, density)));
+
     for (const auto metadata : midi)
     {
         const auto msg = metadata.getMessage();
-        if (msg.isNoteOn()) heldNotes[(size_t)msg.getNoteNumber()] = true;
-        if (msg.isNoteOff()) heldNotes[(size_t)msg.getNoteNumber()] = false;
+        const int note = msg.getNoteNumber();
+        if (note < 0 || note >= 128)
+            continue;
+
+        if (msg.isNoteOn())
+        {
+            heldNotes[(size_t) note] = true;
+            noteVelocities[(size_t) note] = msg.getFloatVelocity();
+            noteSpawnCounters[(size_t) note] = interval - 1;
+        }
+        else if (msg.isNoteOff())
+        {
+            heldNotes[(size_t) note] = false;
+        }
     }
 
     const int total = buffer.getNumSamples();
     const int channels = buffer.getNumChannels();
-    const float density = parameters.getRawParameterValue("density")->load();
-    const int interval = juce::jmax(1, (int)(currentSampleRate / juce::jmax(1.0f, density)));
     for (int i = 0; i < total; ++i)
     {
-        if (++spawnCounter >= interval)
+        // Each held MIDI note owns an independent grain-generation clock.
+        for (int n = 0; n < 128; ++n)
         {
-            spawnCounter = 0;
-            for (int n = 0; n < 128; ++n)
-                if (heldNotes[(size_t)n]) { spawnGrain(n, 0.75f); break; }
+            const auto noteIndex = (size_t) n;
+            if (! heldNotes[noteIndex])
+                continue;
+
+            if (++noteSpawnCounters[noteIndex] >= interval)
+            {
+                noteSpawnCounters[noteIndex] = 0;
+                spawnGrain (n, noteVelocities[noteIndex]);
+            }
         }
         for (auto& g : grains)
         {
