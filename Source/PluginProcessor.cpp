@@ -20,8 +20,7 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
               [] (float start, float end, float value)
               {
                   return std::log (juce::jlimit (start, end, value) / start) / std::log (end / start);
-              },
-              [] (float start, float end) { return start; }),
+              }),
           0.25f),
       std::make_unique<juce::AudioParameterFloat>("cutoff","Cutoff",40.0f,18000.0f,14000.0f),
       std::make_unique<juce::AudioParameterFloat>("resonance","Resonance",0.1f,1.0f,0.25f),
