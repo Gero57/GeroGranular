@@ -42,7 +42,7 @@ private:
         int age = 0;
         int length = 1;
         float gain = 0.0f;
-        int channel = 0;
+        float pan = 0.0f;
     };
 
     juce::AudioFormatManager formats;
@@ -52,6 +52,7 @@ private:
     std::array<Grain, 256> grains {};
     std::array<bool, 128> heldNotes {};
     double currentSampleRate = 44100.0;
+    double sourceSampleRate = 44100.0;
     int spawnCounter = 0;
     juce::Random random;
 
