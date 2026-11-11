@@ -60,6 +60,9 @@ bool GeroGrainAudioProcessor::isBusesLayoutSupported (const BusesLayout& layouts
 void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
 {
     currentSampleRate = sr;
+    lfoPhase = 0.0;
+    lfoValue = 0.0f;
+    lfoRandomValue = random.nextFloat() * 2.0f - 1.0f;
     noteSpawnCounters.fill (0);
     noteEnvelopes.fill (0.0f);
     noteReleasing.fill (false);
@@ -106,6 +109,8 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         const auto spread = parameters.getRawParameterValue("spread")->load();
         const auto stereoWidth = parameters.getRawParameterValue("stereo")->load();
         const auto jitter = parameters.getRawParameterValue("jitter")->load();
+        const auto lfoAmount = parameters.getRawParameterValue("lfoamt")->load();
+        const auto lfoDepth = parameters.getRawParameterValue("lfodepth")->load();
         const double centre = juce::jlimit(0.0, 1.0, (double) pos + random.nextFloat() * rnd - rnd * 0.5);
         g.position = centre * (source.getNumSamples() - 1);
         g.length = juce::jmax(64, (int)(size * currentSampleRate));
@@ -113,7 +118,8 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         // Fine is expressed in cents; Stretch changes playback speed independently
         // from grain duration, allowing longer/shorter source traversal.
         const float pitchJitter = (random.nextFloat() * 2.0f - 1.0f) * jitter * 2.0f;
-        const double pitchRatio = std::pow(2.0, (note - 60 + pitch + fine / 100.0f + pitchJitter) / 12.0);
+        const float lfoPitch = lfoValue * lfoAmount * lfoDepth * 12.0f;
+        const double pitchRatio = std::pow(2.0, (note - 60 + pitch + fine / 100.0f + pitchJitter + lfoPitch) / 12.0);
         const double sampleRateRatio = sourceSampleRate / juce::jmax (1.0, currentSampleRate);
         g.increment = pitchRatio * sampleRateRatio / juce::jmax (0.25f, stretch);
         const bool velocityEnabled = parameters.getRawParameterValue("velocity")->load() >= 0.5f;
@@ -135,6 +141,9 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float density = parameters.getRawParameterValue("density")->load();
     const int interval = juce::jmax (1, (int) (currentSampleRate / juce::jmax (1.0f, density)));
     const float smooth = parameters.getRawParameterValue("smooth")->load();
+    const float lfoRate = parameters.getRawParameterValue("lforate")->load();
+    const int lfoShape = juce::jlimit (0, 4, (int) std::round (parameters.getRawParameterValue("lfoshape")->load()));
+    const double lfoIncrement = lfoRate / juce::jmax (1.0, currentSampleRate);
     const float attackSeconds = parameters.getRawParameterValue("attack")->load();
     const float decaySeconds = parameters.getRawParameterValue("decay")->load();
     const float releaseSeconds = parameters.getRawParameterValue("release")->load();
@@ -163,6 +172,24 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     for (int i = 0; i < total; ++i)
     {
+        // Global LFO: sine, triangle, rising saw, square, or sample-and-hold.
+        const float phase = (float) lfoPhase;
+        switch (lfoShape)
+        {
+            case 1: lfoValue = 1.0f - 4.0f * std::abs (phase - 0.5f); break;
+            case 2: lfoValue = 2.0f * phase - 1.0f; break;
+            case 3: lfoValue = phase < 0.5f ? 1.0f : -1.0f; break;
+            case 4: lfoValue = lfoRandomValue; break;
+            default: lfoValue = std::sin (phase * juce::MathConstants<float>::twoPi); break;
+        }
+        lfoPhase += lfoIncrement;
+        if (lfoPhase >= 1.0)
+        {
+            lfoPhase -= 1.0;
+            if (lfoShape == 4)
+                lfoRandomValue = random.nextFloat() * 2.0f - 1.0f;
+        }
+
         // Apply MIDI events at their exact sample offset inside this block.
         while (midiEvent != midiEnd && (*midiEvent).samplePosition <= i)
         {
