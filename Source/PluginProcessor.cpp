@@ -245,7 +245,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             const float phase = (float)g.age / (float)g.length;
             const float hann = 0.5f - 0.5f * std::cos(juce::MathConstants<float>::twoPi * phase);
             const float window = std::pow (juce::jlimit (0.0f, 1.0f, hann),
-                                           1.0f + smooth * 2.0f);
+                                           1.0f - smooth * 0.75f);
             const int idx = (int)g.position;
             const float frac = (float)(g.position - idx);
             const int nextIdx = juce::jmin (idx + 1, source.getNumSamples() - 1);
