@@ -34,7 +34,6 @@ target_sources(GeroGrain PRIVATE
   Source/PluginEditor.cpp)
 target_include_directories(GeroGrain PRIVATE Source)
 target_link_libraries(GeroGrain PRIVATE
-  GeroGrainAssets
   juce::juce_audio_utils
   juce::juce_dsp
   juce::juce_gui_extra
