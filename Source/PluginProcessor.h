@@ -50,6 +50,9 @@ private:
     juce::AudioFormatManager formats;
     juce::AudioBuffer<float> source;
     juce::AudioBuffer<float> feedbackBuffer;
+    juce::AudioBuffer<float> effectBuffer;
+    int effectWritePosition = 0;
+    double chorusPhase = 0.0;
     int feedbackWritePosition = 0;
     int feedbackSamplesWritten = 0;
     juce::String sampleName { "No sample loaded" };
