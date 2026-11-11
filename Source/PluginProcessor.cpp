@@ -107,6 +107,9 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         if (g.active) continue;
         const auto size = parameters.getRawParameterValue("size")->load();
         const auto feedbackAmount = parameters.getRawParameterValue("feedback")->load();
+        const auto modLfo1 = parameters.getRawParameterValue("modlfo1")->load();
+        const auto modLfo2 = parameters.getRawParameterValue("modlfo2")->load();
+        const auto modEnv = parameters.getRawParameterValue("modenv")->load();
         const auto pos = parameters.getRawParameterValue("position")->load();
         const auto rnd = parameters.getRawParameterValue("random")->load();
         const auto pitch = parameters.getRawParameterValue("pitch")->load();
@@ -133,7 +136,9 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         }
         else
         {
-            const double centre = juce::jlimit(0.0, 1.0, (double) pos + random.nextFloat() * rnd - rnd * 0.5);
+            const float positionMod = lfoValue * modLfo1 * 0.35f;
+            const double centre = juce::jlimit(0.0, 1.0,
+                (double) pos + random.nextFloat() * rnd - rnd * 0.5 + positionMod);
             g.position = centre * (source.getNumSamples() - 1);
         }
         g.age = 0;
@@ -141,14 +146,18 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         // from grain duration, allowing longer/shorter source traversal.
         const float pitchJitter = (random.nextFloat() * 2.0f - 1.0f) * jitter * 2.0f;
         const float lfoPitch = lfoValue * lfoAmount * lfoDepth * 12.0f;
-        const double pitchRatio = std::pow(2.0, (note - 60 + pitch + fine / 100.0f + pitchJitter + lfoPitch) / 12.0);
+        const float envelopePitch = noteEnvelopes[(size_t) juce::jlimit (0, 127, note)] * modEnv * 12.0f;
+        const double pitchRatio = std::pow(2.0, (note - 60 + pitch + fine / 100.0f
+                                                  + pitchJitter + lfoPitch + envelopePitch) / 12.0);
         const double sampleRateRatio = sourceSampleRate / juce::jmax (1.0, currentSampleRate);
         g.increment = pitchRatio * sampleRateRatio / juce::jmax (0.25f, stretch);
         if (g.fromFeedback)
             g.increment = juce::jlimit (0.125, 4.0, g.increment);
         const bool velocityEnabled = parameters.getRawParameterValue("velocity")->load() >= 0.5f;
         g.gain = (velocityEnabled ? velocity : 1.0f) * 0.22f;
-        g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread * stereoWidth;
+        const float panMotion = lfoValue * modLfo2;
+        g.pan = juce::jlimit (-1.0f, 1.0f,
+            (random.nextFloat() * 2.0f - 1.0f) * spread * stereoWidth + panMotion);
         g.midiNote = note;
         g.active = true;
         break;
