@@ -51,6 +51,7 @@ void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
     noteSpawnCounters.fill (0);
     noteEnvelopes.fill (0.0f);
     noteReleasing.fill (false);
+    noteDecaying.fill (false);
     filterLow.fill (0.0f);
     filterBand.fill (0.0f);
     juce::Reverb::Parameters reverbParams;
@@ -114,6 +115,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float density = parameters.getRawParameterValue("density")->load();
     const int interval = juce::jmax (1, (int) (currentSampleRate / juce::jmax (1.0f, density)));
     const float attackSeconds = parameters.getRawParameterValue("attack")->load();
+    const float decaySeconds = parameters.getRawParameterValue("decay")->load();
     const float releaseSeconds = parameters.getRawParameterValue("release")->load();
     const float sustainLevel = parameters.getRawParameterValue("sustain")->load();
     const float cutoff = juce::jlimit (40.0f, (float) (currentSampleRate * 0.45), parameters.getRawParameterValue("cutoff")->load());
@@ -152,6 +154,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                     noteVelocities[noteIndex] = msg.getFloatVelocity();
                     noteEnvelopes[noteIndex] = 0.0f;
                     noteReleasing[noteIndex] = false;
+                    noteDecaying[noteIndex] = false;
                     noteSpawnCounters[noteIndex] = interval - 1;
                 }
                 else if (msg.isNoteOff())
@@ -165,14 +168,24 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             ++midiEvent;
         }
 
-        // Per-note ADSR-style amplitude: attack, sustain and release.
+        // Per-note ADSR amplitude: attack to peak, decay to sustain, then release.
         for (int n = 0; n < 128; ++n)
         {
             const auto noteIndex = (size_t) n;
             if (heldNotes[noteIndex])
             {
-                const float attackStep = 1.0f / juce::jmax (1.0f, attackSeconds * (float) currentSampleRate);
-                noteEnvelopes[noteIndex] = juce::jmin (sustainLevel, noteEnvelopes[noteIndex] + attackStep);
+                if (! noteDecaying[noteIndex])
+                {
+                    const float attackStep = 1.0f / juce::jmax (1.0f, attackSeconds * (float) currentSampleRate);
+                    noteEnvelopes[noteIndex] = juce::jmin (1.0f, noteEnvelopes[noteIndex] + attackStep);
+                    if (noteEnvelopes[noteIndex] >= 1.0f)
+                        noteDecaying[noteIndex] = true;
+                }
+                else
+                {
+                    const float decayStep = (1.0f - sustainLevel) / juce::jmax (1.0f, decaySeconds * (float) currentSampleRate);
+                    noteEnvelopes[noteIndex] = juce::jmax (sustainLevel, noteEnvelopes[noteIndex] - decayStep);
+                }
 
                 if (++noteSpawnCounters[noteIndex] >= interval)
                 {
@@ -182,7 +195,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             }
             else if (noteReleasing[noteIndex])
             {
-                const float releaseStep = juce::jmax (0.000001f, sustainLevel / juce::jmax (1.0f, releaseSeconds * (float) currentSampleRate));
+                const float releaseStep = juce::jmax (0.000001f, 1.0f / juce::jmax (1.0f, releaseSeconds * (float) currentSampleRate));
                 noteEnvelopes[noteIndex] = juce::jmax (0.0f, noteEnvelopes[noteIndex] - releaseStep);
                 if (noteEnvelopes[noteIndex] <= 0.0f)
                     noteReleasing[noteIndex] = false;
