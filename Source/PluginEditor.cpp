@@ -82,72 +82,41 @@ void GeroGrainAudioProcessorEditor::chooseSample()
 
 void GeroGrainAudioProcessorEditor::paint (juce::Graphics& g)
 {
-    auto bounds = getLocalBounds().toFloat();
-    juce::ColourGradient metal (juce::Colour (0xff30363c), 0, 0,
-                                juce::Colour (0xff11161b), 0, (float)getHeight(), false);
-    metal.addColour (0.35, juce::Colour (0xff20272e));
-    metal.addColour (0.70, juce::Colour (0xff171d23));
-    g.setGradientFill (metal);
-    g.fillRoundedRectangle (bounds.reduced (3.0f), 13.0f);
+    // The uploaded 1200x800 blue marble panel is the fixed background.
+    // All JUCE controls are child components and therefore remain above it.
+    static const juce::Image panel = juce::ImageCache::getFromMemory
+        (BinaryData::BaseGrain_png, BinaryData::BaseGrain_pngSize);
 
-    g.setColour (juce::Colour (0xff59636d));
-    g.drawRoundedRectangle (bounds.reduced (4.0f), 12.0f, 1.2f);
+    if (panel.isValid())
+        g.drawImage (panel, getLocalBounds().toFloat());
+    else
+        g.fillAll (juce::Colour (0xff123b68));
 
-    // Four fixed metal screws at the panel corners.
-    auto screw = [&g] (float x, float y)
-    {
-        g.setColour (juce::Colour (0xff080b0e));
-        g.fillEllipse (x-10.0f, y-10.0f, 20.0f, 20.0f);
-        g.setColour (juce::Colour (0xff89939b));
-        g.drawEllipse (x-9.0f, y-9.0f, 18.0f, 18.0f, 1.2f);
-        g.setColour (juce::Colour (0xff3d464e));
-        g.fillEllipse (x-6.5f, y-6.5f, 13.0f, 13.0f);
-        g.setColour (juce::Colour (0xffc0c8ce));
-        g.drawLine (x-3.5f, y+3.5f, x+3.5f, y-3.5f, 1.8f);
-    };
-    screw (20.0f, 20.0f);
-    screw ((float)getWidth()-20.0f, 20.0f);
-    screw (20.0f, (float)getHeight()-20.0f);
-    screw ((float)getWidth()-20.0f, (float)getHeight()-20.0f);
-
-    // Subtle brushed-metal grain, entirely behind the controls.
-    g.setColour (juce::Colour (0xffd5dde4).withAlpha (0.025f));
-    for (int y=6; y<getHeight()-6; y+=5)
-        g.drawHorizontalLine (y, 8.0f, (float)getWidth()-8.0f);
-
-    g.setColour (juce::Colour (0xfff0f3f6));
+    g.setColour (juce::Colour (0xfff5fbff));
     g.setFont (juce::Font (28.0f, juce::Font::bold));
     g.drawText ("GeroGrain", 0, 13, getWidth(), 36, juce::Justification::centred);
-    g.setColour (juce::Colour (0xffaeb9c2));
+    g.setColour (juce::Colour (0xffe0f4ff));
     g.setFont (juce::Font (10.0f));
     g.drawText ("GRANULAR SYNTHESIS", 0, 48, getWidth(), 18, juce::Justification::centred);
 
-    auto section = [&g] (juce::Rectangle<int> r, const juce::String& title)
+    auto sectionTitle = [&g] (int x, int y, int w, const juce::String& title)
     {
-        g.setColour (juce::Colour (0xff0c1116).withAlpha (0.55f));
-        g.fillRoundedRectangle (r.toFloat(), 9.0f);
-        g.setColour (juce::Colour (0xff66717b));
-        g.drawRoundedRectangle (r.toFloat(), 9.0f, 1.0f);
-        g.setColour (juce::Colour (0xffdce4ea));
+        g.setColour (juce::Colour (0xfff3faff).withAlpha (0.96f));
         g.setFont (juce::Font (13.0f, juce::Font::bold));
-        g.drawText (title, r.getX()+12, r.getY()+7, r.getWidth()-24, 18,
-                    juce::Justification::centredLeft);
+        g.drawText (title, x, y, w, 18, juce::Justification::centredLeft);
     };
 
-    section ({18, 86, 420, 125}, "SOURCE");
-    section ({450, 86, 732, 125}, "GRAIN ENGINE");
-    section ({18, 224, 480, 150}, "POSITION");
-    section ({510, 224, 300, 150}, "PITCH");
-    section ({822, 224, 360, 150}, "ENVELOPE");
-    section ({18, 388, 280, 150}, "LFO");
-    section ({310, 388, 280, 150}, "MOD MATRIX");
-    section ({602, 388, 280, 150}, "FILTER");
-    section ({894, 388, 288, 150}, "EFFECTS");
+    sectionTitle (28, 93, 390, "SOURCE");
+    sectionTitle (460, 93, 700, "GRAIN ENGINE");
+    sectionTitle (28, 231, 450, "POSITION");
+    sectionTitle (520, 231, 270, "PITCH");
+    sectionTitle (832, 231, 330, "ENVELOPE");
+    sectionTitle (28, 395, 250, "LFO");
+    sectionTitle (320, 395, 250, "MOD MATRIX");
+    sectionTitle (612, 395, 250, "FILTER");
+    sectionTitle (904, 395, 250, "EFFECTS");
 
-    // Fascia inferiore volutamente libera per espansioni future.
-    g.setColour (juce::Colour (0xff9aa5ae).withAlpha (0.22f));
-    g.drawLine (20.0f, 565.0f, (float)getWidth()-20.0f, 565.0f, 0.8f);
-    g.setColour (juce::Colour (0xff8c969e).withAlpha (0.45f));
+    g.setColour (juce::Colour (0xffeff8ff).withAlpha (0.78f));
     g.setFont (juce::Font (9.0f));
     g.drawText ("EXPANSION AREA", 0, 748, getWidth(), 15, juce::Justification::centred);
 }
