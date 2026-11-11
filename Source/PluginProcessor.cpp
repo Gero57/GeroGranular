@@ -49,6 +49,18 @@ void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
 {
     currentSampleRate = sr;
     noteSpawnCounters.fill (0);
+    noteEnvelopes.fill (0.0f);
+    noteReleasing.fill (false);
+    filterLow.fill (0.0f);
+    filterBand.fill (0.0f);
+    juce::dsp::Reverb::Parameters reverbParams;
+    reverbParams.roomSize = 0.55f;
+    reverbParams.damping = 0.45f;
+    reverbParams.wetLevel = 0.0f;
+    reverbParams.dryLevel = 1.0f;
+    reverbParams.width = 1.0f;
+    reverb.setParameters (reverbParams);
+    reverb.reset();
     for (auto& g : grains) g.active = false;
 }
 
@@ -86,6 +98,7 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         g.increment = pitchRatio * sampleRateRatio;
         g.gain = velocity * 0.22f;
         g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread;
+        g.midiNote = note;
         g.active = true;
         break;
     }
@@ -100,6 +113,21 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
 
     const float density = parameters.getRawParameterValue("density")->load();
     const int interval = juce::jmax (1, (int) (currentSampleRate / juce::jmax (1.0f, density)));
+    const float attackSeconds = parameters.getRawParameterValue("attack")->load();
+    const float releaseSeconds = parameters.getRawParameterValue("release")->load();
+    const float sustainLevel = parameters.getRawParameterValue("sustain")->load();
+    const float cutoff = juce::jlimit (40.0f, (float) (currentSampleRate * 0.45), parameters.getRawParameterValue("cutoff")->load());
+    const float resonance = parameters.getRawParameterValue("resonance")->load();
+    const float driveDb = parameters.getRawParameterValue("drive")->load();
+    const float reverbAmount = parameters.getRawParameterValue("reverb")->load();
+    const float filterCoefficient = 2.0f * std::sin (juce::MathConstants<float>::pi * cutoff / (float) currentSampleRate);
+    const float damping = 1.0f - resonance * 0.92f;
+
+    auto reverbParams = reverb.getParameters();
+    reverbParams.wetLevel = reverbAmount * 0.65f;
+    reverbParams.dryLevel = 1.0f - reverbAmount * 0.25f;
+    reverb.setParameters (reverbParams);
+    const float driveGain = std::pow (10.0f, driveDb / 20.0f);
 
     const int total = buffer.getNumSamples();
     const int channels = buffer.getNumChannels();
@@ -122,11 +150,14 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
                 {
                     heldNotes[noteIndex] = true;
                     noteVelocities[noteIndex] = msg.getFloatVelocity();
+                    noteEnvelopes[noteIndex] = 0.0f;
+                    noteReleasing[noteIndex] = false;
                     noteSpawnCounters[noteIndex] = interval - 1;
                 }
                 else if (msg.isNoteOff())
                 {
                     heldNotes[noteIndex] = false;
+                    noteReleasing[noteIndex] = true;
                     noteSpawnCounters[noteIndex] = 0;
                 }
             }
@@ -134,17 +165,27 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             ++midiEvent;
         }
 
-        // Every held note has its own independent grain-generation clock.
+        // Per-note ADSR-style amplitude: attack, sustain and release.
         for (int n = 0; n < 128; ++n)
         {
             const auto noteIndex = (size_t) n;
-            if (! heldNotes[noteIndex])
-                continue;
-
-            if (++noteSpawnCounters[noteIndex] >= interval)
+            if (heldNotes[noteIndex])
             {
-                noteSpawnCounters[noteIndex] = 0;
-                spawnGrain (n, noteVelocities[noteIndex]);
+                const float attackStep = 1.0f / juce::jmax (1.0f, attackSeconds * (float) currentSampleRate);
+                noteEnvelopes[noteIndex] = juce::jmin (sustainLevel, noteEnvelopes[noteIndex] + attackStep);
+
+                if (++noteSpawnCounters[noteIndex] >= interval)
+                {
+                    noteSpawnCounters[noteIndex] = 0;
+                    spawnGrain (n, noteVelocities[noteIndex]);
+                }
+            }
+            else if (noteReleasing[noteIndex])
+            {
+                const float releaseStep = juce::jmax (0.000001f, sustainLevel / juce::jmax (1.0f, releaseSeconds * (float) currentSampleRate));
+                noteEnvelopes[noteIndex] = juce::jmax (0.0f, noteEnvelopes[noteIndex] - releaseStep);
+                if (noteEnvelopes[noteIndex] <= 0.0f)
+                    noteReleasing[noteIndex] = false;
             }
         }
         for (auto& g : grains)
@@ -166,7 +207,8 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             const float panAngle = (g.pan + 1.0f) * 0.7853981633974483f;
             const float leftGain = std::cos (panAngle) * 1.41421356f;
             const float rightGain = std::sin (panAngle) * 1.41421356f;
-            const float envelopeGain = window * g.gain;
+            const float noteEnvelope = noteEnvelopes[(size_t) juce::jlimit (0, 127, g.midiNote)];
+            const float envelopeGain = window * g.gain * noteEnvelope;
             if (channels == 1)
                 buffer.addSample (0, i, 0.5f * (leftSample * leftGain + rightSample * rightGain) * envelopeGain);
             else
@@ -176,6 +218,26 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             }
             g.position += g.increment;
             ++g.age;
+        }
+
+        // Resonant two-pole low-pass, followed by soft saturation.
+        for (int ch = 0; ch < channels; ++ch)
+        {
+            const float input = buffer.getSample (ch, i) * driveGain;
+            filterLow[(size_t) ch] += filterCoefficient * filterBand[(size_t) ch];
+            const float high = input - filterLow[(size_t) ch] - damping * filterBand[(size_t) ch];
+            filterBand[(size_t) ch] += filterCoefficient * high;
+            const float filtered = filterLow[(size_t) ch];
+            buffer.setSample (ch, i, driveDb > 0.01f ? std::tanh (filtered) : filtered);
+        }
+
+        if (channels >= 2 && reverbAmount > 0.0001f)
+        {
+            float wetLeft = buffer.getSample (0, i);
+            float wetRight = buffer.getSample (1, i);
+            reverb.processStereo (&wetLeft, &wetRight, 1);
+            buffer.setSample (0, i, wetLeft);
+            buffer.setSample (1, i, wetRight);
         }
     }
 }
