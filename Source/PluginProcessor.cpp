@@ -53,7 +53,7 @@ void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
     noteReleasing.fill (false);
     filterLow.fill (0.0f);
     filterBand.fill (0.0f);
-    juce::dsp::Reverb::Parameters reverbParams;
+    juce::Reverb::Parameters reverbParams;
     reverbParams.roomSize = 0.55f;
     reverbParams.damping = 0.45f;
     reverbParams.wetLevel = 0.0f;
@@ -120,7 +120,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float resonance = parameters.getRawParameterValue("resonance")->load();
     const float driveDb = parameters.getRawParameterValue("drive")->load();
     const float reverbAmount = parameters.getRawParameterValue("reverb")->load();
-    const float filterCoefficient = 2.0f * std::sin (juce::MathConstants<float>::pi * cutoff / (float) currentSampleRate);
+    const float filterCoefficient = juce::jlimit (0.001f, 0.8f, 2.0f * std::sin (juce::MathConstants<float>::pi * cutoff / (float) currentSampleRate));
     const float damping = 1.0f - resonance * 0.92f;
 
     auto reverbParams = reverb.getParameters();
