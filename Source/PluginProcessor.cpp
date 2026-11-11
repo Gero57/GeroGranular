@@ -11,7 +11,7 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("pitch","Pitch",-24.0f,24.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("spread","Spread",0.0f,1.0f,0.65f),
       std::make_unique<juce::AudioParameterFloat>("attack","Attack",0.001f,2.0f,0.02f),
-      std::make_unique<juce::AudioParameterFloat>("release","Release",0.01f,60.0f,0.25f),
+      std::make_unique<juce::AudioParameterFloat>("release","Release",juce::NormalisableRange<float>(0.01f,60.0f,0.001f,2.5f),0.25f),
       std::make_unique<juce::AudioParameterFloat>("cutoff","Cutoff",40.0f,18000.0f,14000.0f),
       std::make_unique<juce::AudioParameterFloat>("resonance","Resonance",0.1f,1.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("reverb","Reverb",0.0f,1.0f,0.15f),
@@ -34,7 +34,8 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("delay","Delay",0.0f,1.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("effectmix","Effect Mix",0.0f,1.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("decay","Decay",0.001f,3.0f,0.25f),
-      std::make_unique<juce::AudioParameterBool>("velocity","Velocity",true)
+      std::make_unique<juce::AudioParameterBool>("velocity","Velocity",true),
+      std::make_unique<juce::AudioParameterBool>("reverbon","Reverb On",true)
    })
 {
     formats.registerBasicFormats();
@@ -124,13 +125,15 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float resonance = parameters.getRawParameterValue("resonance")->load();
     const float driveDb = parameters.getRawParameterValue("drive")->load();
     const float reverbAmount = parameters.getRawParameterValue("reverb")->load();
+    const float effectMix = parameters.getRawParameterValue("effectmix")->load();
+    const bool reverbEnabled = parameters.getRawParameterValue("reverbon")->load() >= 0.5f;
     const float filterCoefficient = juce::jlimit (0.001f, 0.8f, 2.0f * std::sin (juce::MathConstants<float>::pi * cutoff / (float) currentSampleRate));
     const float damping = 1.0f - resonance * 0.92f;
 
     auto reverbParams = reverb.getParameters();
     reverbParams.roomSize = 0.98f;
     reverbParams.damping = 0.10f;
-    reverbParams.wetLevel = reverbAmount * 0.90f;
+    reverbParams.wetLevel = reverbEnabled ? reverbAmount * 0.90f : 0.0f;
     reverbParams.dryLevel = 1.0f;
     reverb.setParameters (reverbParams);
     const float driveGain = std::pow (10.0f, driveDb / 20.0f);
@@ -260,13 +263,16 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             buffer.setSample (ch, i, driveDb > 0.01f ? std::tanh (filtered) : filtered);
         }
 
-        if (channels >= 2 && reverbAmount > 0.0001f)
+        if (channels >= 2 && reverbEnabled && reverbAmount > 0.0001f)
         {
-            float wetLeft = buffer.getSample (0, i);
-            float wetRight = buffer.getSample (1, i);
+            const float dryLeft = buffer.getSample (0, i);
+            const float dryRight = buffer.getSample (1, i);
+            float wetLeft = dryLeft;
+            float wetRight = dryRight;
             reverb.processStereo (&wetLeft, &wetRight, 1);
-            buffer.setSample (0, i, wetLeft);
-            buffer.setSample (1, i, wetRight);
+            const float mix = juce::jlimit (0.0f, 1.0f, effectMix);
+            buffer.setSample (0, i, dryLeft * (1.0f - mix) + wetLeft * mix);
+            buffer.setSample (1, i, dryRight * (1.0f - mix) + wetRight * mix);
         }
     }
 }
