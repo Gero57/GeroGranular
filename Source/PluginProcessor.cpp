@@ -133,7 +133,7 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             const float rightA = source.getSample (sourceChannels > 1 ? 1 : 0, idx);
             const float rightB = source.getSample (sourceChannels > 1 ? 1 : 0, nextIdx);
             const float rightSample = rightA + (rightB - rightA) * frac;
-            const float panAngle = (g.pan + 1.0f) * juce::MathConstants<float>::quarterPi;
+            const float panAngle = (g.pan + 1.0f) * 0.7853981633974483f;
             const float leftGain = std::cos (panAngle) * 1.41421356f;
             const float rightGain = std::sin (panAngle) * 1.41421356f;
             const float envelopeGain = window * g.gain;
