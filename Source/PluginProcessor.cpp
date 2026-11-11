@@ -11,7 +11,18 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("pitch","Pitch",-24.0f,24.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("spread","Spread",0.0f,1.0f,0.65f),
       std::make_unique<juce::AudioParameterFloat>("attack","Attack",0.001f,2.0f,0.02f),
-      std::make_unique<juce::AudioParameterFloat>("release","Release",juce::NormalisableRange<float>(0.01f,60.0f,0.001f,2.5f),0.25f),
+      std::make_unique<juce::AudioParameterFloat>("release","Release",
+          juce::NormalisableRange<float> (0.01f, 60.0f,
+              [] (float start, float end, float proportion)
+              {
+                  return start * std::pow (end / start, proportion);
+              },
+              [] (float start, float end, float value)
+              {
+                  return std::log (juce::jlimit (start, end, value) / start) / std::log (end / start);
+              },
+              [] (float start, float end) { return start; }),
+          0.25f),
       std::make_unique<juce::AudioParameterFloat>("cutoff","Cutoff",40.0f,18000.0f,14000.0f),
       std::make_unique<juce::AudioParameterFloat>("resonance","Resonance",0.1f,1.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("reverb","Reverb",0.0f,1.0f,0.15f),
