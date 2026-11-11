@@ -11,7 +11,7 @@ GeroGrainAudioProcessor::GeroGrainAudioProcessor()
       std::make_unique<juce::AudioParameterFloat>("pitch","Pitch",-24.0f,24.0f,0.0f),
       std::make_unique<juce::AudioParameterFloat>("spread","Spread",0.0f,1.0f,0.65f),
       std::make_unique<juce::AudioParameterFloat>("attack","Attack",0.001f,2.0f,0.02f),
-      std::make_unique<juce::AudioParameterFloat>("release","Release",0.01f,5.0f,0.25f),
+      std::make_unique<juce::AudioParameterFloat>("release","Release",0.01f,60.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("cutoff","Cutoff",40.0f,18000.0f,14000.0f),
       std::make_unique<juce::AudioParameterFloat>("resonance","Resonance",0.1f,1.0f,0.25f),
       std::make_unique<juce::AudioParameterFloat>("reverb","Reverb",0.0f,1.0f,0.15f),
@@ -55,8 +55,8 @@ void GeroGrainAudioProcessor::prepareToPlay (double sr, int)
     filterLow.fill (0.0f);
     filterBand.fill (0.0f);
     juce::Reverb::Parameters reverbParams;
-    reverbParams.roomSize = 0.55f;
-    reverbParams.damping = 0.45f;
+    reverbParams.roomSize = 0.98f;
+    reverbParams.damping = 0.10f;
     reverbParams.wetLevel = 0.0f;
     reverbParams.dryLevel = 1.0f;
     reverbParams.width = 1.0f;
@@ -126,8 +126,10 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     const float damping = 1.0f - resonance * 0.92f;
 
     auto reverbParams = reverb.getParameters();
-    reverbParams.wetLevel = reverbAmount * 0.65f;
-    reverbParams.dryLevel = 1.0f - reverbAmount * 0.25f;
+    reverbParams.roomSize = 0.98f;
+    reverbParams.damping = 0.10f;
+    reverbParams.wetLevel = reverbAmount * 0.90f;
+    reverbParams.dryLevel = 1.0f;
     reverb.setParameters (reverbParams);
     const float driveGain = std::pow (10.0f, driveDb / 20.0f);
 
