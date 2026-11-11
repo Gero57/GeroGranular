@@ -112,7 +112,7 @@ void GeroGrainAudioProcessorEditor::resized()
     }};
     for (size_t i=0; i<knobs.size(); ++i)
     {
-        const float diameter = (i < 5 ? 62.0f : 56.0f);
+        const float diameter = (i < 5 ? 86.0f : 80.0f);
         place (*knobs[i], centres[i].x - diameter*0.5f,
                centres[i].y - diameter*0.5f, diameter, diameter);
     }
