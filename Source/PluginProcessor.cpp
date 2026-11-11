@@ -60,6 +60,7 @@ bool GeroGrainAudioProcessor::loadSample (const juce::File& file)
     reader->read (&loaded, 0, (int) reader->lengthInSamples, 0, true, true);
     const juce::ScopedLock lock (sampleLock);
     source = std::move (loaded);
+    sourceSampleRate = reader->sampleRate;
     sampleName = file.getFileName();
     for (auto& g : grains) g.active = false;
     return true;
@@ -80,9 +81,11 @@ void GeroGrainAudioProcessor::spawnGrain (int note, float velocity)
         g.position = centre * (source.getNumSamples() - 1);
         g.length = juce::jmax(64, (int)(size * currentSampleRate));
         g.age = 0;
-        g.increment = std::pow(2.0, (note - 60 + pitch) / 12.0) * (44100.0 / currentSampleRate);
+        const double pitchRatio = std::pow(2.0, (note - 60 + pitch) / 12.0);
+        const double sampleRateRatio = sourceSampleRate / juce::jmax (1.0, currentSampleRate);
+        g.increment = pitchRatio * sampleRateRatio;
         g.gain = velocity * 0.22f;
-        g.channel = random.nextFloat() < spread ? random.nextInt(2) : 0;
+        g.pan = (random.nextFloat() * 2.0f - 1.0f) * spread;
         g.active = true;
         break;
     }
@@ -122,12 +125,24 @@ void GeroGrainAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
             const float window = 0.5f - 0.5f * std::cos(juce::MathConstants<float>::twoPi * phase);
             const int idx = (int)g.position;
             const float frac = (float)(g.position - idx);
-            for (int ch = 0; ch < channels; ++ch)
+            const int nextIdx = juce::jmin (idx + 1, source.getNumSamples() - 1);
+            const int sourceChannels = source.getNumChannels();
+            const float leftA = source.getSample (0, idx);
+            const float leftB = source.getSample (0, nextIdx);
+            const float leftSample = leftA + (leftB - leftA) * frac;
+            const float rightA = source.getSample (sourceChannels > 1 ? 1 : 0, idx);
+            const float rightB = source.getSample (sourceChannels > 1 ? 1 : 0, nextIdx);
+            const float rightSample = rightA + (rightB - rightA) * frac;
+            const float panAngle = (g.pan + 1.0f) * juce::MathConstants<float>::quarterPi;
+            const float leftGain = std::cos (panAngle) * 1.41421356f;
+            const float rightGain = std::sin (panAngle) * 1.41421356f;
+            const float envelopeGain = window * g.gain;
+            if (channels == 1)
+                buffer.addSample (0, i, 0.5f * (leftSample * leftGain + rightSample * rightGain) * envelopeGain);
+            else
             {
-                const int srcCh = juce::jmin(ch, source.getNumChannels()-1);
-                const float a = source.getSample(srcCh, idx);
-                const float b = source.getSample(srcCh, juce::jmin(idx+1, source.getNumSamples()-1));
-                buffer.addSample(ch, i, (a + (b-a)*frac) * window * g.gain);
+                buffer.addSample (0, i, leftSample * leftGain * envelopeGain);
+                buffer.addSample (1, i, rightSample * rightGain * envelopeGain);
             }
             g.position += g.increment;
             ++g.age;
